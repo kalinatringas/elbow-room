@@ -53,7 +53,7 @@ Make sure you have installed:
 ### Navigate to the frontend folder
 
 ```bash
-cd frontend
+cd front-end
 ```
 ### Install dependencies
 ```bash
