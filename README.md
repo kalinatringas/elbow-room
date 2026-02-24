@@ -1,13 +1,13 @@
 # Elbow Room - Full Stack Social Media App
 
-Frontend is built with **Vite + TypeScript**, backend will use **FastAPI**, and data is managed with **PostgreSQL via Supabase**.
+Frontend is built with **Expo + TypeScript**, backend will use **FastAPI**, and data is managed with **PostgreSQL via Supabase**.
 
 ---
 
 ## Tech Stack
 
 ### Frontend
-- Vite
+- React Native Expo
 - TypeScript
 - npm
 
@@ -20,21 +20,6 @@ Frontend is built with **Vite + TypeScript**, backend will use **FastAPI**, and 
 - Supabase (Cloud-hosted PostgreSQL)
 
 ---
-
-##  Project Structure
-
-project-root/
-│
-├── frontend/ # Frontend (Vite + TypeScript)
-│ ├── src/
-│ ├── package.json
-│ └── vite.config.ts
-│
-├── backend/ # Backend (FastAPI - planned)
-│ ├── main.py
-│ └── requirements.txt
-│
-└── README.md
 
 ## Getting Started
 
@@ -76,7 +61,7 @@ npm run dev
 
 Frontend will run on:
 
-http://localhost:5173
+http://localhost:8081
 
 ## Backend Setup (FastAPI – Planned)
 
@@ -152,7 +137,7 @@ Backend will run on: `http://localhost:8000`
 
 Once backend is running:
 
-- **Frontend** → `5173`
+- **Frontend** → `8081`
 - **Backend** → `8000`
 
 You will need to enable CORS in FastAPI:
