@@ -2,7 +2,7 @@ import { Stack, useRouter, useSegments } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
-
+import "../global.css"
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)

@@ -2,11 +2,13 @@ import { useState } from "react";
 import { View, TextInput, Text, Button, Alert } from "react-native";
 import { supabase } from "@/lib/supabaseClient";
 import { router } from "expo-router";
+import { verifyInstallation } from "nativewind";
 
 export default function Login(){
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
+    
 
     const handleLogin = async ()=>{
         setLoading(true)
@@ -22,13 +24,14 @@ export default function Login(){
         }
     }
     return(
-        <View className="flex-1 items-center justify-center bg-red-50">   
+        <View className="flex-1 p-2 items-center justify-center bg-red-500">   
         <Text>Email</Text>
         <TextInput
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         style= {{ borderWidth:1 , padding: 8}}
+        className="min-w-[50vw]"
         />
         <Text>Password</Text>
         <TextInput
