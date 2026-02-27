@@ -1,19 +1,47 @@
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import "../global.css"
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { Stack, useRouter, useSegments } from 'expo-router'
+import { useEffect, useState } from 'react'
+import { Session } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabaseClient'
 
 export default function RootLayout() {
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  return (
-      <><Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-    </Stack><StatusBar style="auto" /></>
-  );
+  const segments = useSegments()
+  const router = useRouter()
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setLoading(false)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+      }
+    )
+
+    return () => {
+      listener.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (loading) return
+
+    const inAuthGroup = segments[0] === '(auth)'
+
+    if (!session && !inAuthGroup) {
+      router.replace('/(auth)/login')
+    }
+
+    if (session && inAuthGroup) {
+      router.replace('/(tabs)')
+    }
+  }, [session, loading, segments])
+
+  if (loading) return null
+
+  return <Stack screenOptions={{ headerShown: false }} />
 }
