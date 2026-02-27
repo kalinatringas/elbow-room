@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "frontend",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceS tyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
