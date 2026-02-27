@@ -1,10 +1,4 @@
-<<<<<<< HEAD
 /* This file adds the requisite utility classes for Tailwind to work. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-=======
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
->>>>>>> 9a9c8ce2700b7ed5967de962cb92152ed6079509
