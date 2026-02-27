@@ -3,10 +3,13 @@ import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { verifyInstallation } from 'nativewind';
 
 export default function ModalScreen() {
+  verifyInstallation(); 
+
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView className='flex-1 bg-purple-50 align-center justify-center p-20'>
       <ThemedText type="title">This is a modal</ThemedText>
       <Link href="/" dismissTo style={styles.link}>
         <ThemedText type="link">Go to home screen</ThemedText>
