@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { View, TextInput, Text, Modal, TouchableOpacity, Alert } from "react-native";
+import { View, TextInput, KeyboardAvoidingView, Platform, Text, Modal, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabaseClient";
 import { router } from "expo-router";
+
 
 export default function Landing() {
   const [activeSheet, setActiveSheet] = useState<string | null>(null);
@@ -46,8 +47,11 @@ export default function Landing() {
 
       <Modal visible={activeSheet !== null} transparent animationType="slide" onRequestClose={() => setActiveSheet(null)}>
         <TouchableOpacity className="flex-1" activeOpacity={1} onPress={() => setActiveSheet(null)} />
-
-        <View className="h-[60%] bg-white rounded-t-3xl p-6">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className=""
+            >
+        <View className="bg-white rounded-t-3xl p-6">
 
           <View className="w-10 h-1 bg-gray-300 rounded-full self-center mb-4" />
 
@@ -98,9 +102,12 @@ export default function Landing() {
             className={`rounded-xl p-4 items-center mt-2 ${loading ? "bg-indigo-300" : "bg-indigo-500"}`}>
             <Text className="text-white font-semibold">
               {loading ? "Loading..." : activeSheet === "Login" ? "Sign In" : "Sign Up"}
-            </Text>
+            </Text>  
+
           </TouchableOpacity>
+        
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

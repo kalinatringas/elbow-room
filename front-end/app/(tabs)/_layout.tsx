@@ -25,10 +25,6 @@ export default function TabLayout() {
       .eq("id",user?.id)
       .single();
       if (!error) setProfile(data)
-
-    console.log("user:", user);
-    console.log("data:", data);
-    console.log("error:", error);
     };
   fetchProfile();
   }, [])
