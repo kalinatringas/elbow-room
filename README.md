@@ -48,9 +48,11 @@ npm install
 
 Create a .env file inside frontend/:
 ```bash
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
+!!! Put this file in your .gitignore file!
+
 You can find these in your Supabase dashboard:
 Project Settings → API
 
