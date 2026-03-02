@@ -69,7 +69,7 @@ http://localhost:8081
 
 ### Navigate to backend folder
 ```bash
-cd backend
+cd back-end
 ```
 ### Create virtual environment (recommended)
 ```bash
@@ -206,7 +206,7 @@ Make sure FastAPI CORS middleware includes `http://localhost:5173`.
 
 If you're new:
 
-1. Start with frontend only (`frontend/`).
+1. Start with frontend only (`front-end/`).
 2. Confirm Supabase connection works.
 3. Then set up backend.
 4. Run both servers simultaneously.
