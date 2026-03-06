@@ -58,7 +58,7 @@ Project Settings → API
 
 ###  Start development server
 ```bash
-npm run dev
+npx expo start
 ```
 
 Frontend will run on:
@@ -176,7 +176,7 @@ app.add_middleware(
 **Run Frontend**
 ```bash
 cd fe
-npm run dev
+npx expo start
 ```
 
 **Run Backend**
@@ -192,7 +192,7 @@ uvicorn main:app --reload --port 8000
 ## Common Issues
 
 ### ❌ CORS Errors
-Make sure FastAPI CORS middleware includes `http://localhost:5173`.
+Make sure FastAPI CORS middleware includes `http://localhost:8081`.
 
 ### ❌ Environment Variables Not Loading
 - Ensure `.env` is in the correct folder.
