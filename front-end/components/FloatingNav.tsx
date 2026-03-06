@@ -5,30 +5,36 @@ import { Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const tabs = [
-  { name: "home", icon: "home", label: "Home", route: "/(tabs)/home" as Href },
-  { name: "post", icon: "add", label: "Post", route: "/(tabs)/explore" as Href },
-  { name: "profile", icon: "person", label: "Profile", route: "/(tabs)/profile" as Href },
+  { name: "home", icon: "home", label: "Home", route: "/(tabs)/home" as Href, dx:15, dy:-15},
+  { name: "post", icon: "add", label: "Post", route: "/(tabs)/explore" as Href,dx:20, dy:-20 },
+  { name: "profile", icon: "person", label: "Profile", route: "/(tabs)/profile" as Href, dx:15, dy:0},
 ];
 
 function NavButton({ tab, active, onPress }: { tab: typeof tabs[0], active: boolean, onPress: () => void }) {
   const translateY = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  useEffect(() => { 
     Animated.spring(translateY, {
-      toValue: active ? -30 : 0,
+      toValue: active ? tab.dy : 0,
       useNativeDriver: true,
       tension: 100,
       friction: 8,
+    }).start();
+    Animated.spring(translateX,{
+      toValue: active? tab.dx: 0,
+      useNativeDriver: true,
+      tension:100,
+      friction: 8
     }).start();
   }, [active]);
 
   return (
     <TouchableOpacity onPress={onPress} className="items-center gap-1">
-      <Animated.View style={{ transform: [{ translateY }] }} className="items-center gap-1">
+      <Animated.View style={{ transform: [{ translateX }, { translateY }] }} className="items-center gap-1">
         <View className={`p-3 rounded-full ${active ? "bg-indigo-100" : "bg-white"}`}>
         <Ionicons
           name={tab.icon as any}
-          size={32}
+          size={40}
           color={active ? "#6366f1" : "#9ca3af"}
         />
         </View>
@@ -39,16 +45,22 @@ function NavButton({ tab, active, onPress }: { tab: typeof tabs[0], active: bool
 
 
 export default function FloatingNav({active}: { active:string}){
-
+    const tabPositions: Record<string, object> = {
+      home: { right: 16, top: "20%" },
+      post: { top: 1, left: "40%" },
+      profile: { right: -16, top: "50%" },
+    };
     return (
-    <View className="absolute bottom-8 left-6 right-6 bg-indigo-100 rounded-2xl p-2 justify-around flex-row">
-       {tabs.map((tab)=>(
+    <View className="absolute rounded-full  w-72 h-72 -bottom-16 overflow-visible -left-24 bg-indigo-100 p-2 justify-around items-center">
+       {tabs.map((tab)=>( n   
+        <View key={tab.name}  style={{ position: "absolute", ...tabPositions[tab.name] }}>
         <NavButton
         key={tab.name}
         tab={tab}
         active = {active === tab.name}
         onPress={()=> router.replace(tab.route)}
         />
+        </View>
     ))}
     </View>
     )
