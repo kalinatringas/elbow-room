@@ -1,53 +1,67 @@
 import { Tabs } from 'expo-router';
-import React, { useEffect } from 'react';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Alert, TouchableOpacity } from 'react-native';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, MOCK_MODE } from '@/lib/supabaseClient';
 import FloatingNav from '@/components/FloatingNav';
-//// put stuff here that you would like tosee across different pages
+
 export default function TabLayout() {
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+
   const signOut = async () => {
     setLoading(true);
-    const {error} = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
     setLoading(false);
-    if (error){
-      Alert.alert("Error Signing out", error.message);
-    }
-  }
-  const [profile, setProfile] = useState<any>(null);
-  useEffect(()=>{
-    const fetchProfile = async ()=>{
-      const {data:{user}} = await supabase.auth.getUser();
-      const {data, error} = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id",user?.id)
-      .single();
-      if (!error) setProfile(data)
+    if (error) Alert.alert("Error Signing out", error.message);
+  };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      // In mock mode, skip Supabase and use fake profile
+      if (MOCK_MODE) {
+        setProfile({ username: 'DevUser' });
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single();
+
+      if (!error) setProfile(data);
     };
-  fetchProfile();
-  }, [])
+
+    fetchProfile();
+  }, []);
 
   return (
-    <View className='flex-1 justify-center items-center'>
-      {/* For debugging not for prod */}
-      <View className='top-0 right-0 fixed'>
-      <TouchableOpacity
-        onPress={signOut}
-        disabled={loading}
-        className={`rounded-xl text-white py-3 items-center m-1 p-2  ${
-          loading ? "bg-indigo-400" : "bg-indigo-400 active:bg-indigo-500"
-        }`}
-          >
-            <Text>Sign Out</Text>
-      </TouchableOpacity>
+    // ✅ Tabs must be the root — this renders your actual tab screens
+    <Tabs screenOptions={{ headerShown: false }}>
+      {/* Overlay UI that appears on every tab */}
+      <View
+        style={{ position: 'absolute', top: 10, right: 10, zIndex: 100 }}
+        pointerEvents="box-none"
+      >
+        <TouchableOpacity
+          onPress={signOut}
+          disabled={loading}
+          className={`rounded-xl py-3 items-center m-1 p-2 ${
+            loading ? "bg-indigo-400" : "bg-indigo-400 active:bg-indigo-500"
+          }`}
+        >
+          <Text className="text-white">Sign Out</Text>
+        </TouchableOpacity>
+
+        <Text className="text-center text-sm text-gray-500">
+          Welcome {profile?.username ?? '...'}
+        </Text>
       </View>
-      <View>
-        <Text>Welcome {profile?.username}</Text>
-      </View>
-      {/* The navbar */}
-      <FloatingNav active='home'/>
-      </View>
+
+      <FloatingNav active="home" />
+    </Tabs>
   );
 }

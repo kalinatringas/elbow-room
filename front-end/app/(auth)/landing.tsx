@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, TextInput, KeyboardAvoidingView, Platform, Text, Modal, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, MOCK_MODE } from "@/lib/supabaseClient";
 import { router } from "expo-router";
 
 
@@ -14,6 +14,13 @@ export default function Landing() {
 
   const handleLogin = async () => {
     setLoading(true);
+
+    if (MOCK_MODE) {
+      setLoading(false);
+      router.replace("/(tabs)");
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) Alert.alert("Login error", error.message);
@@ -21,7 +28,18 @@ export default function Landing() {
   };
 
   const handleSignup = async () => {
-    if (password !== confirmPassword) { Alert.alert("Error", "Passwords do not match"); return; }
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    if (MOCK_MODE) {
+      Alert.alert("Mock Mode", "Sign up skipped!", [
+        { text: "OK", onPress: () => router.replace("/(tabs)") }
+      ]);
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
@@ -103,7 +121,6 @@ export default function Landing() {
             <Text className="text-white font-semibold">
               {loading ? "Loading..." : activeSheet === "Login" ? "Sign In" : "Sign Up"}
             </Text>  
-
           </TouchableOpacity>
         
         </View>
