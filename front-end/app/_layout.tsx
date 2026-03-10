@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from 'expo-router'
+import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
@@ -9,6 +9,7 @@ export default function RootLayout() {
 
   const segments = useSegments()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -30,16 +31,14 @@ export default function RootLayout() {
   useEffect(() => {
     if (loading) return
 
-    const inAuthGroup = segments[0] === '(auth)'
+    const path = pathname
 
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/landing')
+    if (!session && path !== '/landing') {
+      router.replace('/landing')
+    } else if (session && path === '/landing') {
+      router.replace('/home')
     }
-
-    if (session && inAuthGroup) {
-      router.replace('/(tabs)')
-    }
-  }, [session, loading, segments])
+  }, [session, loading, pathname])
 
   if (loading) return null
 

@@ -5,9 +5,9 @@ import { Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const tabs = [
-  { name: "home", icon: "home", label: "Home", route: "/(tabs)/home" as Href },
-  { name: "post", icon: "add", label: "Post", route: "/(tabs)/explore" as Href },
-  { name: "profile", icon: "person", label: "Profile", route: "/(tabs)/profile" as Href },
+  { name: "home", icon: "home", label: "Home", route: "/home" as Href },
+  { name: "feed", icon: "add", label: "Explore", route: "/feed" as Href },
+  { name: "profile", icon: "person", label: "Profile", route: "/profile" as Href },
 ];
 
 function NavButton({ tab, active, onPress }: { tab: typeof tabs[0], active: boolean, onPress: () => void }) {
