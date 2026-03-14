@@ -33,7 +33,6 @@ export default function HomePage(){
 
     return(
        <View className='flex-1 justify-center items-center'>
-             {/* For debugging not for prod */}
              <View className='top-0 right-0 fixed'>
              <TouchableOpacity
                onPress={signOut}
@@ -45,10 +44,9 @@ export default function HomePage(){
                    <Text>Sign Out</Text>
              </TouchableOpacity>
              </View>
-              <View>
+              <View className="items-center">
                 <Text>Welcome {profile?.username}</Text>
                 <Image source={{uri: profile?.avatar_url}} className="w-24 h-24 rounded-full"/>
-
               </View>               
              </View>  
     )

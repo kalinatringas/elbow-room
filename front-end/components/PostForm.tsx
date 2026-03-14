@@ -1,18 +1,22 @@
-import {View, Text, TextInput, TouchableOpacity, useWindowDimensions} from 'react-native'; // renders something
+import {View, Text, TextInput, TouchableOpacity, useWindowDimensions, NativeSyntheticEvent, TextInputContentSizeChangeEvent} from 'react-native'; // renders something
 import {useState} from 'react'; // tracks what user is typing
 import {StyleSheet} from 'react-native'; // styles for button
-
+import {TextInputContentSizeChangeEventData} from 'react-native'
+import { useRef } from 'react';
 // defines the props that the PostForm component expects to receive
 // lowkey don't know what this do 
 type Props = {
     onSubmit: (content: string) => void; // function that takes content and does something with it
+    loading?: boolean;
 }
 
-export default function PostForm(props: Props){    
+export default function PostForm({ onSubmit, loading = false }: Props){    
     const [textbox, setTextBox] = useState(""); // content starts as empty string
     const [error, setError] = useState(""); // validation state
-    const {height} = useWindowDimensions();
+    const [inputHeight, setInputHeight] = useState(300);
     // VALIDATION LOGIC
+    const inputRef = useRef<TextInput>(null)
+
     function validate(){
         if(textbox== "" || !textbox.trim()){ // if empty or just spaces print error
             setError("Can't leave me blank!");
@@ -41,8 +45,9 @@ export default function PostForm(props: Props){
         }
         console.log("Submitted", textbox);
 
-        props.onSubmit(textbox);
+        onSubmit(textbox);
         setTextBox(""); // clear text box after submit
+        setInputHeight(48);
     }
 
     // ERROR Handling logic
@@ -53,32 +58,25 @@ export default function PostForm(props: Props){
     
 
    return (
-    <View className='w-full'>
+    <View className='w-full p-3'>
         <View className='bg-indigo-100 rounded-xl w-full'>
             <TextInput
                 className='p-3 m-2 self-stretch'
-                style={{ textAlignVertical: 'top', maxHeight: height * 0.7, minHeight: 48 }}
+                ref={inputRef}
                 value={textbox}
                 onChangeText={changeText}
-                placeholder="Type here..."
+                placeholder="So... what's on your mind?"
                 placeholderTextColor="#DAB1DA"
                 multiline={true}
+                scrollEnabled={false}
             />
             {errorMessage}
         </View>
-        <TouchableOpacity className="rounded-xl bg-[#DAB1DA] p-2 mt-2" onPress={formSubmit}>
-            <Text>Submit</Text>
+        <TouchableOpacity className="rounded-xl bg-[#DAB1DA] p-2 mt-2" 
+            onPress={formSubmit}
+            disabled={loading}>
+            <Text className='text-center text-lg text-pink-900'>{loading ? "Posting..." : "Post"}</Text>
         </TouchableOpacity>
     </View>
 );
 }
-
-const styles = StyleSheet.create({
-    button: {
-        alignItems: 'center',
-        backgroundColor: '#DAB1DA',
-        padding: 10,
-        borderRadius: 5,
-        marginTop: 10,
-    }
-})

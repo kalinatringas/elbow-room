@@ -1,5 +1,5 @@
 # All libs that are needed
-from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File
+from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -53,21 +53,19 @@ class PostResponse(BaseModel):
     author_id: UUID
     content: str
     created_at: datetime
-    updated_at: datetime
-    deleted_at: datetime
 
 @app.get("/")
 def root():
     return{"Message": "hi there"}
 
 @app.post("/posts/", response_model=PostResponse)
-def request_post(post: PostRequest, user=Depends(get_current_user)):
+def request_post(post: PostRequest = Body(...), user=Depends(get_current_user)):
     data = {
         "author_id": str(user.id),
         "content": post.content,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow().isoformat()
     }
-    response = supabase.table("posts").insert(data).execute()
+    response = supabase_admin.table("posts").insert(data).execute()
     return response.data[0]
 
 # get a single user by ID
@@ -84,7 +82,7 @@ def get_posts():
     response = supabase.table("posts").select("*").execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
-    return response.data[0]
+    return response.data
 
 @app.post("/upload-avatar")
 async def upload_avatar(
