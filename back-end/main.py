@@ -82,7 +82,7 @@ def get_user(user_id: str):
 @app.get("/posts/")
 def get_posts():
     response = supabase.table("posts").select("*").execute()
-    return response.data
+    if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
     return response.data[0]
 
