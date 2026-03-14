@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Text, Alert } from "react-native"
+import { View, TouchableOpacity, Text, Alert, Image } from "react-native"
 import { router } from 'expo-router';
 import FloatingNav from "@/components/FloatingNav"
 import { supabase } from "@/lib/supabaseClient"
@@ -23,7 +23,7 @@ export default function HomePage(){
       const {data:{user}} = await supabase.auth.getUser();
       const {data, error} = await supabase
       .from("profiles")
-      .select("username")
+      .select("username, avatar_url")
       .eq("id",user?.id)
       .single();
       if (!error) setProfile(data)
@@ -45,11 +45,11 @@ export default function HomePage(){
                    <Text>Sign Out</Text>
              </TouchableOpacity>
              </View>
-             <View>
-               <Text>Welcome {profile?.username}</Text>
-             </View>
-             {/* The navbar */}
-             
-             </View>
+              <View>
+                <Text>Welcome {profile?.username}</Text>
+                <Image source={{uri: profile?.avatar_url}} className="w-24 h-24 rounded-full"/>
+
+              </View>               
+             </View>  
     )
 }

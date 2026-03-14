@@ -7,12 +7,12 @@ import { supabase } from '@/lib/supabaseClient';
 export default function Index() {
   const router = useRouter();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) router.replace('/home');
-      else router.replace('/landing');
-    });
-  }, []);
+  // useEffect(() => {
+  //   supabase.auth.getSession().then(({ data }) => {
+  //     if (data.session) router.replace('/home');
+  //     else router.replace('/landing');
+  //   });
+  // }, []);
 
   return (
     <View className="flex-1 justify-center items-center bg-white">

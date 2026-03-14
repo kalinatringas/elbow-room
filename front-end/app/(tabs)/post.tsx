@@ -10,7 +10,7 @@ export default function CreatePost() {
   return (
     <View className="flex-1 items-center justify-center bg-white">
        <Text className="text-xl font-bold text-purple-500">
-            Welcome to PURPLE!
+          What's on your mind?
         </Text>
        
       <PostForm onSubmit={handlePost} />

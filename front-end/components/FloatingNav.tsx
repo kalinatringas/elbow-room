@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 const tabs = [
   { name: "home", icon: "home", label: "Home", route: "/home" as Href },
-  { name: "feed", icon: "add", label: "Explore", route: "/feed" as Href },
+  { name: "post", icon: "add", label: "Explore", route: "/post" as Href },
   { name: "profile", icon: "person", label: "Profile", route: "/profile" as Href },
 ];
 

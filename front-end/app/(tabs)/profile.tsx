@@ -1,15 +1,33 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
 import { View,Text } from 'react-native';
-import PostForm from '@/components/PostForm';
+import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
+export default function Profile() {  
+    
+  const [profile, setProfile] = useState<any>(null);
+  
+    useEffect(()=>{
+      const fetchProfile = async ()=>{
+        const {data:{user}} = await supabase.auth.getUser();
+        const {data, error} = await supabase
+        .from("profiles")
+        .select("name, avatar_url")
+        .eq("id",user?.id)
+        .single();
+        if (!error) setProfile(data)
+      };
+    fetchProfile();
+    }, [])
 
-export default function HomeScreen() {
- 
   return (
    <View className="flex-1 items-center justify-center bg-white">
-      <Text className="text-xl font-bold text-purple-500">
-        profile      
+      <View className='absolute top-0 bg-indigo-200 rounded-b-xl p-3 w-full items-center'>
+        <Image source={{uri: profile?.avatar_url}} className='w-24 h-24 rounded-full'/>
+      <Text className="text-xl font-bold text-slate-800">
+        {profile?.name}    
       </Text>
+      </View>
+      
     </View>
   );
 } 
