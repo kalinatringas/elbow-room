@@ -1,4 +1,4 @@
-import {View, Text, TextInput, TouchableOpacity} from 'react-native'; // renders something
+import {View, Text, TextInput, TouchableOpacity, useWindowDimensions} from 'react-native'; // renders something
 import {useState} from 'react'; // tracks what user is typing
 import {StyleSheet} from 'react-native'; // styles for button
 
@@ -11,7 +11,7 @@ type Props = {
 export default function PostForm(props: Props){    
     const [textbox, setTextBox] = useState(""); // content starts as empty string
     const [error, setError] = useState(""); // validation state
-
+    const {height} = useWindowDimensions();
     // VALIDATION LOGIC
     function validate(){
         if(textbox== "" || !textbox.trim()){ // if empty or just spaces print error
@@ -52,23 +52,25 @@ export default function PostForm(props: Props){
     }
     
 
-    return(
-        <View>
-            <Text>Do you like cats?</Text>
+   return (
+    <View className='w-full'>
+        <View className='bg-indigo-100 rounded-xl w-full'>
             <TextInput
+                className='p-3 m-2 self-stretch'
+                style={{ textAlignVertical: 'top', maxHeight: height * 0.7, minHeight: 48 }}
                 value={textbox}
                 onChangeText={changeText}
-                placeholder="Type here..." // hint text
+                placeholder="Type here..."
                 placeholderTextColor="#DAB1DA"
+                multiline={true}
             />
-            {errorMessage}  {/*// if null, nothing prints. if value, prints.*/}
-        
-            <TouchableOpacity style = {styles.button} onPress={formSubmit}>
-                <Text>Submit</Text>
-            </TouchableOpacity>
-            {/* touchable opacity is a rapper to  */}
+            {errorMessage}
         </View>
-    );
+        <TouchableOpacity className="rounded-xl bg-[#DAB1DA] p-2 mt-2" onPress={formSubmit}>
+            <Text>Submit</Text>
+        </TouchableOpacity>
+    </View>
+);
 }
 
 const styles = StyleSheet.create({

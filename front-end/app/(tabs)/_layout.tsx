@@ -7,14 +7,14 @@ export default function TabLayout() {
 
   // map route → tab name
   const activeTab = pathname.includes('profile') ? 'profile'
-    : pathname.includes('feed') ? 'feed'
+    : pathname.includes('post') ? 'post'
     : 'home';
 
   return (
     <View style={{ flex: 1 }}>
       <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}>
         <Tabs.Screen name="home" />
-        <Tabs.Screen name="feed" />
+        <Tabs.Screen name="post" />
         <Tabs.Screen name="profile" />
       </Tabs>
 

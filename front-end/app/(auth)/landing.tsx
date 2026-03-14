@@ -17,7 +17,7 @@ export default function Landing() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) Alert.alert("Login error", error.message);
-    else router.replace("/home");
+    //else router.replace("/home");
   };
 
   const handleSignup = async () => {
@@ -26,8 +26,11 @@ export default function Landing() {
     const { error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
     if (error) Alert.alert("Sign up error", error.message);
-    else Alert.alert("Success", "Check your email!", [{ text: "OK", onPress: () => setActiveSheet(null) }]);
-    // note: email confirmation flow; user will land on / after they confirm
+    // else {
+    //   Alert.alert("Success", "Check your email!", [{ text: "OK", onPress: () => router.replace("/setup") }]);
+    //   //router.replace("/setup")  
+    // }
+    // push to setup now
   };
 
   return (
