@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 export default function CreatePost() {
   const [loading, setLoading] = useState(false)
+  
   const handlePost = async (text:string) =>{
     setLoading(true);
     try{

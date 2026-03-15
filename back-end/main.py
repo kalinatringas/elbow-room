@@ -67,7 +67,7 @@ def request_post(post: PostRequest = Body(...), user=Depends(get_current_user)):
     }
     response = supabase_admin.table("posts").insert(data).execute()
     return response.data[0]
-
+ 
 # get a single user by ID
 @app.get("/user/{user_id}", status_code=200)
 def get_user(user_id: str):
@@ -78,10 +78,15 @@ def get_user(user_id: str):
 
 # getting posts
 @app.get("/posts/")
-def get_posts():
-    response = supabase.table("posts").select("*").execute()
+def get_posts(user=Depends(get_current_user)):
+    response = supabase_admin.table("posts").select("*, profiles!posts_author_id_fkey(username, avatar_url)").order("created_at", desc=True).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
+    posts = response.data
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
     return response.data
 
 @app.post("/upload-avatar")
