@@ -1,18 +1,19 @@
 # All libs that are needed
-from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File, Body
+from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File, Body, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from supabase import create_client, Client
-from typing import Optional
+from typing import Optional, List, Generic, TypeVar
 from dotenv import load_dotenv
 from datetime import datetime
 from uuid import UUID
 import os, io
 from PIL import Image
+from math import ceil
 
 # Gets the .env for the keys
-load_dotenv()
+load_dotenv(dotenv_path=".env")
 
 
 supabase_url = os.getenv("SUPABASE_URL")
@@ -54,6 +55,11 @@ class PostResponse(BaseModel):
     content: str
     created_at: datetime
 
+#pagination model
+class CursorPagination(BaseModel):
+    items: List[PostResponse]
+    next_cursor: Optional[str]
+
 @app.get("/")
 def root():
     return{"Message": "hi there"}
@@ -76,13 +82,26 @@ def get_user(user_id: str):
         return HTTPException(status_code=404, detail="User not found")
     return response.data[0]
 
-# getting posts
-@app.get("/posts/")
-def get_posts():
-    response = supabase.table("posts").select("*").execute()
+# getting posts and implementing cursor pagination
+@app.get("/posts", response_model=CursorPagination)
+def get_posts(
+    cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
+    limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
+):
+    query = supabase.table("posts").select("*").order("created_at", desc=True).is_("deleted_at", None)
+
+    if cursor:
+        query = query.lt("created_at", cursor)
+
+    response = query.limit(limit).execute()
+
     if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
-    return response.data
+    
+    last_post = response.data[-1] if response.data else None
+    next_cursor = last_post["created_at"] if last_post else None
+    
+    return {"items": response.data, "next_cursor": next_cursor}
 
 @app.post("/upload-avatar")
 async def upload_avatar(
