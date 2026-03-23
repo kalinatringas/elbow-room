@@ -1,3 +1,4 @@
+## Laveena - setting up environment
 # Elbow Room - Full Stack Social Media App
 
 Frontend is built with **Expo + TypeScript**, backend will use **FastAPI**, and data is managed with **PostgreSQL via Supabase**.
@@ -166,3 +167,4 @@ If you're new:
 2. Confirm Supabase connection works.
 3. Then set up backend.
 4. Run both servers simultaneously.
+
