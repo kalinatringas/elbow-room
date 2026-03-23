@@ -73,7 +73,7 @@ def request_post(post: PostRequest = Body(...), user=Depends(get_current_user)):
     }
     response = supabase_admin.table("posts").insert(data).execute()
     return response.data[0]
-
+ 
 # get a single user by ID
 @app.get("/user/{user_id}", status_code=200)
 def get_user(user_id: str):
@@ -87,8 +87,12 @@ def get_user(user_id: str):
 def get_posts(
     cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
+    user=Depends(get_current_user),
 ):
-    query = supabase.table("posts").select("*").order("created_at", desc=True).is_("deleted_at", None)
+    query = supabase.table("posts") \
+        .select("*") \
+        .order("created_at", desc=True) \
+        .is_("deleted_at", None)
 
     if cursor:
         query = query.lt("created_at", cursor)
@@ -96,12 +100,21 @@ def get_posts(
     response = query.limit(limit).execute()
 
     if not response.data:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    last_post = response.data[-1] if response.data else None
-    next_cursor = last_post["created_at"] if last_post else None
-    
-    return {"items": response.data, "next_cursor": next_cursor}
+        return {"items": [], "next_cursor": None}
+
+    posts = response.data
+
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(
+            l["user_id"] == str(user.id) for l in likes
+        )
+
+    last_post = posts[-1]
+    next_cursor = last_post["created_at"]
+
+    return {"items": posts, "next_cursor": next_cursor}
 
 @app.post("/upload-avatar")
 async def upload_avatar(
