@@ -13,7 +13,7 @@ export default function CreatePost() {
     try{
       const {data : {session}} = await supabase.auth.getSession();
  
-      const response = await fetch("http://localhost:8000/posts/",{ //replace with deplayed BE 
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/`,{ //replace with deplayed BE 
             method: "POST",
             headers: {
                 Authorization: `Bearer ${session?.access_token}`,

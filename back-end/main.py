@@ -96,12 +96,37 @@ def get_posts(
     response = query.limit(limit).execute()
 
     if not response.data:
+<<<<<<< HEAD
+        return {"items": [], "next_cursor": None}
+
+    posts = response.data
+
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
+    return posts
+
+# get post from user (for profile page)
+@app.get("/posts/me")
+def get_posts(user=Depends(get_current_user)):
+    response = supabase_admin.table("posts").select("*, profiles!posts_author_id_fkey(username, avatar_url)").eq("author_id", str(user.id)).order("created_at", desc=True).execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    posts = response.data
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
+    return posts
+=======
         raise HTTPException(status_code=404, detail="User not found")
     
     last_post = response.data[-1] if response.data else None
     next_cursor = last_post["created_at"] if last_post else None
     
     return {"items": response.data, "next_cursor": next_cursor}
+>>>>>>> de7106fbe7e1740caafdd0cdf486c54f09243db3
 
 @app.post("/upload-avatar")
 async def upload_avatar(
