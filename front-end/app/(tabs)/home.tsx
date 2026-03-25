@@ -6,6 +6,9 @@ import Post from "@/components/Post";
 
 export default function HomePage(){
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
   const signOut = async () => {
     setLoading(true);
     const {error} = await supabase.auth.signOut();
@@ -17,27 +20,12 @@ export default function HomePage(){
       router.replace('/landing');
     }
   }
-  const [profile, setProfile] = useState<any>(null);
-  useEffect(()=>{
-    const fetchProfile = async ()=>{
-      const {data:{user}} = await supabase.auth.getUser();
-      const {data, error} = await supabase
-      .from("profiles")
-      .select("username, avatar_url")
-      .eq("id",user?.id)
-      .single();
-      if (!error) setProfile(data)
-    };
-  fetchProfile();
-  getPosts();
-  }, [])
-  const [posts, setPosts] = useState<any[]>([]);
-  const [postsLoading, setPostsLoading] = useState(false);
+
   const getPosts = async ()=>{
     setPostsLoading(true);
     try{
       const {data : {session}} = await supabase.auth.getSession();
-      const response = await   fetch("http://localhost:8000/posts/",{
+      const response = await   fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/`,{
         method: "GET",
         headers: {
           Authorization: `Bearer ${session?.access_token}`
@@ -56,6 +44,19 @@ export default function HomePage(){
       setPostsLoading(false)
     }
   }
+  useEffect(()=>{
+    const fetchProfile = async ()=>{
+      const {data:{user}} = await supabase.auth.getUser();
+      const {data, error} = await supabase
+      .from("profiles")
+      .select("username, avatar_url")
+      .eq("id",user?.id)
+      .single();
+      if (!error) setProfile(data)
+    };
+  fetchProfile();
+  getPosts();
+  }, [])
 
     return(
        <View className='flex-1 justify-center items-center'>
@@ -70,6 +71,7 @@ export default function HomePage(){
                    <Text>Sign Out</Text>
              </TouchableOpacity>
              </View>
+             <View className="w-full justify-center">
               {postsLoading ? (
                 <Text className="text-center">Loading posts...</Text>
               ):(
@@ -81,7 +83,8 @@ export default function HomePage(){
                     <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} />
                   )}
                   />
-              )}         
+              )}   
+             </View>   
              </View>  
     )
 }
