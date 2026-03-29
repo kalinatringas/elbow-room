@@ -37,7 +37,7 @@ export default function HomePage(){
         throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
       }
       const data = await response.json();
-      setPosts(data);
+      setPosts(data.items);
     } catch (error){
       Alert.alert("Error", (error as Error).message);
     }finally{
@@ -80,7 +80,7 @@ export default function HomePage(){
                   data={posts}
                   keyExtractor={(item)=>item.id}
                   renderItem={({item})=>(
-                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} />
+                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} avatar_url={item.profiles?.avatar_url} />
                   )}
                   />
               )}   
