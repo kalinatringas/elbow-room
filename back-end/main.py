@@ -60,6 +60,12 @@ class CursorPagination(BaseModel):
     items: List[PostResponse]
     next_cursor: Optional[str]
 
+
+class UpdateUser(BaseModel):
+    username: str
+    bio: str
+    name: str
+
 @app.get("/")
 def root():
     return{"Message": "hi there"}
@@ -167,3 +173,11 @@ async def upload_avatar(
     supabase.table("profiles").update({"avatar_url":public_url}).eq("id", user.id).execute()
 
     return {"avatar_url": public_url}
+
+@app.patch("/users/:id")
+async def update_user(patch: UpdateUser, file: UploadFile = File(...), user=Depends(get_current_user)):
+    supabase.table("profiles").update({"username":patch.username}).eq("id", user.id).execute()
+    supabase.table("profiles").update({"bio":patch.bio}).eq("id", user.id).execute()
+    supabase.table("profiles").update({"name":patch.name}).eq("id", user.id).execute()
+    upload_avatar(file)
+    return {}
