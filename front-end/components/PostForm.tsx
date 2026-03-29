@@ -53,7 +53,7 @@ export default function PostForm({ onSubmit, loading = false }: Props){
     // ERROR Handling logic
     let errorMessage = null;
     if(error !== ""){
-        errorMessage = <Text>{error}</Text>;
+        errorMessage = <Text className='p-2 text-center text-red-700'>{error}</Text>;
     }
     
 
@@ -66,7 +66,7 @@ export default function PostForm({ onSubmit, loading = false }: Props){
                 value={textbox}
                 onChangeText={changeText}
                 placeholder="So... what's on your mind?"
-                placeholderTextColor="#DAB1DA"
+                placeholderTextColor="#a1a1aa"
                 multiline={true}
                 scrollEnabled={false}
             />

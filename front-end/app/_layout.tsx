@@ -1,15 +1,41 @@
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import "../global.css"
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
+  const segments = useSegments()
+
+  const redirect = useCallback(async (session: Session | null)=>{
+    const inAuthGroup = segments[0] === '(tabs)'
+
+    if(!session){
+      router.replace('/landing')
+      return
+    }
+
+    if (session && !inAuthGroup){
+      const {data} = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', session.user.id)
+        .single()
+
+      if (data?.username && data?.avatar_url){
+        router.replace('/home')
+      } else{
+        router.replace('/setup')
+      }
+    }
+  }, [segments])
+
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -59,9 +85,5 @@ export default function RootLayout() {
 
   if (loading) return null
 
-  return (
-  <GestureHandlerRootView style={{ flex: 1 }}>
-    <Stack screenOptions={{ headerShown: false }} />
-  </GestureHandlerRootView>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />
 }

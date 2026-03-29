@@ -7,12 +7,13 @@ import { useState } from 'react';
 
 export default function CreatePost() {
   const [loading, setLoading] = useState(false)
+  
   const handlePost = async (text:string) =>{
     setLoading(true);
     try{
       const {data : {session}} = await supabase.auth.getSession();
  
-      const response = await fetch("http://localhost:8000/posts/",{ //replace with deplayed BE 
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/`,{ //replace with deplayed BE 
             method: "POST",
             headers: {
                 Authorization: `Bearer ${session?.access_token}`,
