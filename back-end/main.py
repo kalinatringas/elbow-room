@@ -87,28 +87,32 @@ def get_user(user_id: str):
 def get_posts(
     cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
+    user=Depends(get_current_user)
 ):
     query = supabase.table("posts").select("*").order("created_at", desc=True).is_("deleted_at", None)
 
     if cursor:
         query = query.lt("created_at", cursor)
 
-    response = query.limit(limit).execute()
+    response = query.limit(limit + 1).execute()  # fetch one extra to check if there are more
 
     if not response.data:
-<<<<<<< HEAD
         return {"items": [], "next_cursor": None}
 
-    posts = response.data
-
+    posts = response.data[:limit]  # take only up to limit
+    has_more = len(response.data) > limit
+    
     for post in posts:
         likes = post.get("post_likes", [])
         post["like_count"] = len(likes)
         post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
-    return posts
+
+    next_cursor = posts[-1]["created_at"] if has_more and posts else None
+
+    return {"items": posts, "next_cursor": next_cursor}
 
 # get post from user (for profile page)
-@app.get("/posts/me")
+@app.get("/posts/me/")
 def get_posts(user=Depends(get_current_user)):
     response = supabase_admin.table("posts").select("*, profiles!posts_author_id_fkey(username, avatar_url)").eq("author_id", str(user.id)).order("created_at", desc=True).execute()
     if not response.data:
@@ -119,14 +123,6 @@ def get_posts(user=Depends(get_current_user)):
         post["like_count"] = len(likes)
         post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
     return posts
-=======
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    last_post = response.data[-1] if response.data else None
-    next_cursor = last_post["created_at"] if last_post else None
-    
-    return {"items": response.data, "next_cursor": next_cursor}
->>>>>>> de7106fbe7e1740caafdd0cdf486c54f09243db3
 
 @app.post("/upload-avatar")
 async def upload_avatar(
