@@ -73,13 +73,13 @@ def request_post(post: PostRequest = Body(...), user=Depends(get_current_user)):
     }
     response = supabase_admin.table("posts").insert(data).execute()
     return response.data[0]
-
+ 
 # get a single user by ID
 @app.get("/user/{user_id}", status_code=200)
 def get_user(user_id: str):
     response = supabase.table("profiles").select("*").eq("id", user_id).execute()
     if not response.data:
-        return HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")
     return response.data[0]
 
 # getting posts and implementing cursor pagination
@@ -89,7 +89,10 @@ def get_posts(
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
     user=Depends(get_current_user)
 ):
-    query = supabase.table("posts").select("*").order("created_at", desc=True).is_("deleted_at", None)
+    query = supabase.table("posts") \
+        .select("*, post_like(user_id)") \
+        .order("created_at", desc=True) \
+        .is_("deleted_at", None)
 
     if cursor:
         query = query.lt("created_at", cursor)
@@ -167,3 +170,41 @@ async def upload_avatar(
     supabase.table("profiles").update({"avatar_url":public_url}).eq("id", user.id).execute()
 
     return {"avatar_url": public_url}
+
+@app.get("/users/{user_id}/posts", response_model=CursorPagination)
+def get_user_post(
+    user_id: str,
+    cursor: Optional[str] = Query(None, description="Fetch posts after this post ID"),
+    limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
+    user=Depends(get_current_user),
+):
+    searched_user = get_user(user_id)
+
+    query = supabase.table("posts") \
+        .select("*, post_likes(user_id)") \
+        .eq('author_id', user_id) \
+        .order("created_at", desc=True) \
+        .is_("deleted_at", None)
+
+    if cursor:
+        query = query.lt("created_at", cursor)
+
+    response = query.limit(limit).execute()
+
+    if not response.data:
+        return {"items": [], "next_cursor": None}
+
+    posts = response.data
+    has_more = len(posts) > limit
+
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(
+            l["user_id"] == str(user.id) for l in likes
+        )
+
+    next_cursor = posts[-1]["created_at"] if has_more else None
+
+    return {"items": posts, "next_cursor": next_cursor}
+
