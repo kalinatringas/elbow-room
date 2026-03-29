@@ -83,11 +83,11 @@ def get_user(user_id: str):
     return response.data[0]
 
 # getting posts and implementing cursor pagination
-@app.get("/posts", response_model=CursorPagination)
+@app.get("/posts/", response_model=CursorPagination)
 def get_posts(
     cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
-    user=Depends(get_current_user),
+    user=Depends(get_current_user)
 ):
     query = supabase.table("posts") \
         .select("*, post_like(user_id)") \
@@ -97,24 +97,35 @@ def get_posts(
     if cursor:
         query = query.lt("created_at", cursor)
 
-    response = query.limit(limit).execute()
+    response = query.limit(limit + 1).execute()  # fetch one extra to check if there are more
 
     if not response.data:
         return {"items": [], "next_cursor": None}
 
-    posts = response.data
-
+    posts = response.data[:limit]  # take only up to limit
+    has_more = len(response.data) > limit
+    
     for post in posts:
         likes = post.get("post_likes", [])
         post["like_count"] = len(likes)
-        post["liked_by_me"] = any(
-            l["user_id"] == str(user.id) for l in likes
-        )
+        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
 
-    last_post = posts[-1]
-    next_cursor = last_post["created_at"]
+    next_cursor = posts[-1]["created_at"] if has_more and posts else None
 
     return {"items": posts, "next_cursor": next_cursor}
+
+# get post from user (for profile page)
+@app.get("/posts/me/")
+def get_posts(user=Depends(get_current_user)):
+    response = supabase_admin.table("posts").select("*, profiles!posts_author_id_fkey(username, avatar_url)").eq("author_id", str(user.id)).order("created_at", desc=True).execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    posts = response.data
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
+    return posts
 
 @app.post("/upload-avatar")
 async def upload_avatar(

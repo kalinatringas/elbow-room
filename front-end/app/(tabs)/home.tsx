@@ -6,6 +6,9 @@ import Post from "@/components/Post";
 
 export default function HomePage(){
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
   const signOut = async () => {
     setLoading(true);
     const {error} = await supabase.auth.signOut();
@@ -17,7 +20,30 @@ export default function HomePage(){
       router.replace('/landing');
     }
   }
-  const [profile, setProfile] = useState<any>(null);
+
+  const getPosts = async ()=>{
+    setPostsLoading(true);
+    try{
+      const {data : {session}} = await supabase.auth.getSession();
+      const response = await   fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/`,{
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        },
+      });
+      if (!response.ok){
+        const err = await response.json();
+        console.log("Full error:", JSON.stringify(err))
+        throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
+      }
+      const data = await response.json();
+      setPosts(data.items);
+    } catch (error){
+      Alert.alert("Error", (error as Error).message);
+    }finally{
+      setPostsLoading(false)
+    }
+  }
   useEffect(()=>{
     const fetchProfile = async ()=>{
       const {data:{user}} = await supabase.auth.getUser();
@@ -31,31 +57,6 @@ export default function HomePage(){
   fetchProfile();
   getPosts();
   }, [])
-  const [posts, setPosts] = useState<any[]>([]);
-  const [postsLoading, setPostsLoading] = useState(false);
-  const getPosts = async ()=>{
-    setPostsLoading(true);
-    try{
-      const {data : {session}} = await supabase.auth.getSession();
-      const response = await   fetch("http://localhost:8000/posts/",{
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`
-        },
-      });
-      if (!response.ok){
-        const err = await response.json();
-        console.log("Full error:", JSON.stringify(err))
-        throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
-      }
-      const data = await response.json();
-      setPosts(data);
-    } catch (error){
-      Alert.alert("Error", (error as Error).message);
-    }finally{
-      setPostsLoading(false)
-    }
-  }
 
     return(
        <View className='flex-1 justify-center items-center'>
@@ -70,6 +71,7 @@ export default function HomePage(){
                    <Text>Sign Out</Text>
              </TouchableOpacity>
              </View>
+             <View className="w-full justify-center">
               {postsLoading ? (
                 <Text className="text-center">Loading posts...</Text>
               ):(
@@ -78,10 +80,11 @@ export default function HomePage(){
                   data={posts}
                   keyExtractor={(item)=>item.id}
                   renderItem={({item})=>(
-                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} />
+                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} avatar_url={item.profiles?.avatar_url} />
                   )}
                   />
-              )}         
+              )}   
+             </View>   
              </View>  
     )
 }
