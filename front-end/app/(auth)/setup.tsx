@@ -42,7 +42,7 @@ export default function Setup(){
             const formData = new FormData();
             formData.append("file", blob, "avatar.jpg");
 
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/`,{ //replace with deplayed BE 
+            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/upload-avatar`,{
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${session?.access_token}`,
