@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, Animated } from "react-native";
-import { useEffect, useState, useRef } from "react";
+import { View, TouchableOpacity, Animated } from "react-native";
+import { useEffect, useRef } from "react";
 import { router } from "expo-router";
 import { Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";

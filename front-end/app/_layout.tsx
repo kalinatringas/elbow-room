@@ -56,9 +56,34 @@ export default function RootLayout() {
   useEffect(() => {
     if (loading) return
 
-    redirect(session)
-  }, [session, loading])
+    const path = pathname
+    if (!session && path !== '/landing') {
+      console.log("→ no session, redirecting to landing")
+      router.replace('/landing')
+    } else if (session && path === '/landing') {
+      console.log("→ has session on landing, checking profile")
+      checkProfile()
+    } else if (session && path === '/setup'){
+      console.log("→ has session on landing, checking profile")
+      return
+    }
+  }, [session, loading, pathname])
 
+  const checkProfile = async () =>{
+    const {data} = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', session?.user.id)
+      .single()
+
+      if (data?.username && data?.avatar_url ){
+        router.replace('/home')
+      } else{
+        router.replace('/setup')
+      }
+  }
+
+  if (loading) return null
 
   return <Stack screenOptions={{ headerShown: false }} />
 }
