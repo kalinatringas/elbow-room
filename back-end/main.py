@@ -1,5 +1,5 @@
 # All libs that are needed
-from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File, Body, Query
+from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File, Body, Query, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -59,6 +59,12 @@ class PostResponse(BaseModel):
 class CursorPagination(BaseModel):
     items: List[PostResponse]
     next_cursor: Optional[str]
+
+
+class UpdateUser(BaseModel):
+    username: str
+    bio: str
+    name: str
 
 @app.get("/")
 def root():
@@ -141,19 +147,16 @@ def get_posts(user=Depends(get_current_user)):
         post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
     return posts
 
-@app.post("/upload-avatar")
-async def upload_avatar(
-    file: UploadFile = File(...),
-    user = Depends(get_current_user),
-):
-    print("filename:", file.filename)
-    print("content_type:", file.content_type)
+
+async def process_and_upload_avatar(
+    file: UploadFile,
+    user_id: str,   
+)->str:
 
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail="Invalid file type: only JPEG, PNG, and WEBP allowed")
     
     contents = await file.read()
-    print("size:", len(contents))
 
     # checking if file bigger than 2mb
     if (len(contents) > MAX_SIZE_MB * 1024 * 1024):
@@ -171,7 +174,7 @@ async def upload_avatar(
         raise HTTPException(status_code=500, detail=f"image processing failed: {str(e)}")
 
     try:
-        file_path = f'{user.id}/avatar.jpeg'
+        file_path = f'{user_id}/avatar.jpeg'
         supabase_admin.storage.from_("avatars").upload(
         path=file_path,
         file=buffer.read(),
@@ -183,41 +186,45 @@ async def upload_avatar(
     public_url = supabase.storage.from_('avatars').get_public_url(file_path)
     supabase.table("profiles").update({"avatar_url":public_url}).eq("id", user.id).execute()
 
-    return {"avatar_url": public_url}
+    return public_url
+@app.post("/upload-avatar")
+async def upload_avatar_route(file:UploadFile = File(...),
+                              user = Depends(get_current_user)):
+    url = await process_and_upload_avatar(file, user.id)
+    supabase.table("profiles").update({"avatar_url": url}).eq("id", user.id).execute()
+    return {"avatar_url": url}
 
-@app.get("/users/{user_id}/posts", response_model=CursorPagination)
-def get_user_post(
-    user_id: str,
-    cursor: Optional[str] = Query(None, description="Fetch posts after this post ID"),
-    limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
-    user=Depends(get_current_user),
-):
-    searched_user = get_user(user_id)
 
-    query = supabase.table("posts") \
-        .select("*, post_likes(user_id)") \
-        .eq('author_id', user_id) \
-        .order("created_at", desc=True) \
-        .is_("deleted_at", None)
+@app.patch("/users/me")
+async def update_user(username: str = Form(None),
+                      bio: str = Form(None),
+                      name: str = Form(None), 
+                      file: UploadFile = File(None), 
+                      user=Depends(get_current_user)):
+    updates = {}
 
-    if cursor:
-        query = query.lt("created_at", cursor)
+    # i used form fields here instead of a pydantic model since we have bote files + text fields (Upload avatar)
+    
+    if username is not None: 
+        updates["username"] = username
+    if bio is not None:
+        updates["bio"] = bio
+    if name is not None:
+        updates["name"] = name
 
-    response = query.limit(limit).execute()
+    if file is not None:
+        avatar_url = await process_and_upload_avatar(file, user_id = user.id)
+        updates["avatar_url"] = avatar_url
 
-    if not response.data:
-        return {"items": [], "next_cursor": None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    result = supabase.table("profiles").update(updates).eq("id", user.id).execute()
 
-    posts = response.data
-    has_more = len(posts) > limit
-
-    for post in posts:
-        likes = post.get("post_likes", [])
-        post["like_count"] = len(likes)
-        post["liked_by_me"] = any(
-            l["user_id"] == str(user.id) for l in likes
-        )
-
-    next_cursor = posts[-1]["created_at"] if has_more else None
-
-    return {"items": posts, "next_cursor": next_cursor}
+    # supabase.table("profiles").update({"username":patch.username}).eq("id", user.id).execute()
+    # supabase.table("profiles").update({"bio":patch.bio}).eq("id", user.id).execute()
+    # supabase.table("profiles").update({"name":patch.name}).eq("id", user.id).execute()
+    # upload_avatar(file)
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Update failed")
+    return result.data[0]
