@@ -59,8 +59,11 @@ export default function HomePage(){
   }, [])
 
     return(
-       <View className='flex-1 justify-center items-center'>
-             <View className='top-0 right-0 fixed'>
+       <View className='flex-1'>
+             <View className='flex-row justify-between items-center px-2 py-2'>
+              <View className="flex-1">
+                <Text>searchbar</Text>
+              </View>
              <TouchableOpacity
                onPress={signOut}
                disabled={loading}
@@ -71,7 +74,7 @@ export default function HomePage(){
                    <Text>Sign Out</Text>
              </TouchableOpacity>
              </View>
-             <View className="w-full justify-center">
+             <View className="w-full flex-1">
               {postsLoading ? (
                 <Text className="text-center">Loading posts...</Text>
               ):(
