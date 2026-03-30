@@ -1,9 +1,26 @@
-
+import { useState } from "react"
+import { TextInput, TouchableOpacity, View } from "react-native"
 
 export default function SearchBar(){
+
+    const [searchInput, setSearchInput] = useState("")
+
+    function changeText(newText:string){
+        setSearchInput(newText);
+        //clearError();
+    }
+
+
     return(<>
-        <div>
-            
-        </div>
+        <View className="p-2 flex-row w-full">
+            <TextInput
+                className="p-3 self-stretch min-w-xl bg-white rounded-2xl border-black text-black" 
+                value={searchInput}
+                onChangeText={changeText}
+                placeholder="Search here..."
+                placeholderTextColor="#a1a1aa"
+            />
+            <TouchableOpacity className="ml-2 bg-indigo-500 rounded-2xl text-center p-2">Submit</TouchableOpacity>
+        </View>
     </>)
 }

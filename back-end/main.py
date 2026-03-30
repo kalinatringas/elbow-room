@@ -83,14 +83,14 @@ def get_user(user_id: str):
     return response.data[0]
 
 # getting posts and implementing cursor pagination
-@app.get("/posts/", response_model=CursorPagination)
+@app.get("/posts/")
 def get_posts(
     cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
     user=Depends(get_current_user)
 ):
     query = supabase.table("posts") \
-        .select("*, post_like(user_id)") \
+        .select("*, post_likes(user_id), profiles!posts_author_id_fkey(username, avatar_url)") \
         .order("created_at", desc=True) \
         .is_("deleted_at", None)
 
@@ -104,6 +104,20 @@ def get_posts(
 
     posts = response.data[:limit]  # take only up to limit
     has_more = len(response.data) > limit
+    author_ids = list({post["author_id"] for post in posts})
+    profiles_response = supabase_admin.table("profiles") \
+        .select("id, username, avatar_url") \
+        .in_("id", author_ids) \
+        .execute()
+    
+    profiles_map = {p["id"]: p for p in profiles_response.data}
+
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
+        post["profiles"] = profiles_map.get(post["author_id"])
+
     
     for post in posts:
         likes = post.get("post_likes", [])
@@ -207,4 +221,3 @@ def get_user_post(
     next_cursor = posts[-1]["created_at"] if has_more else None
 
     return {"items": posts, "next_cursor": next_cursor}
-
