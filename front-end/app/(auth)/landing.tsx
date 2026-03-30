@@ -34,15 +34,6 @@ export default function Landing() {
       Alert.alert("Sign up error", error.message);
       return;
     }
-
-    if (!data.user && !data.session) {
-      Alert.alert(
-        "Sign up successful",
-        "Check your email to confirm your account before logging in."
-      );
-      return;
-    }
-
     router.replace("/setup");
   } catch (e) {
     console.log("caught error:", e)

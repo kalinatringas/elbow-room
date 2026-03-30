@@ -6,23 +6,10 @@ import Post from "@/components/Post";
 import SearchBar from "@/components/SearchBar";
 
 export default function HomePage(){
-  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
-  
-  const signOut = async () => {
-    setLoading(true);
-    const {error} = await supabase.auth.signOut();
-    setLoading(false);
-    if (error){
-      Alert.alert("Error Signing out", error.message);
-    } else {
-      // return to login screen
-      router.replace('/landing');
-    }
-  }
-
+  const [searchLoading, setSearchLoading] = useState(false);
   const getPosts = async ()=>{
     setPostsLoading(true);
     try{
@@ -47,6 +34,29 @@ export default function HomePage(){
       setPostsLoading(false)
     }
   }
+  const handleSearch = async ()=>{
+    setSearchLoading(true);
+    try{
+      const {data: {session}} = await supabase.auth.getSession();
+
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/search/`,{
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        },
+      });
+      if (!response.ok){
+        const err = await response.json();
+      }
+      const data = await response.json();
+      // here we set the search results 
+    } catch (error){
+      Alert.alert("Error", (error as Error).message)
+    } finally{
+      setSearchLoading(false);
+    }
+  }
+
   useEffect(()=>{
     const fetchProfile = async ()=>{
       const {data:{user}} = await supabase.auth.getUser();
