@@ -3,12 +3,14 @@ import { router } from 'expo-router';
 import { supabase } from "@/lib/supabaseClient"
 import { useState, useEffect } from "react";
 import Post from "@/components/Post";
+import SearchBar from "@/components/SearchBar";
 
 export default function HomePage(){
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  
   const signOut = async () => {
     setLoading(true);
     const {error} = await supabase.auth.signOut();
@@ -37,6 +39,7 @@ export default function HomePage(){
         throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
       }
       const data = await response.json();
+      console.log("First post:", JSON.stringify(data.items[0], null, 2));
       setPosts(data.items);
     } catch (error){
       Alert.alert("Error", (error as Error).message);
@@ -59,19 +62,12 @@ export default function HomePage(){
   }, [])
 
     return(
-       <View className='flex-1 justify-center items-center'>
-             <View className='top-0 right-0 fixed'>
-             <TouchableOpacity
-               onPress={signOut}
-               disabled={loading}
-               className={`rounded-xl text-white py-3 items-center m-1 p-2${
-                 loading ? "bg-indigo-400" : "bg-indigo-400 active:bg-indigo-500"
-               }`}
-                 >
-                   <Text>Sign Out</Text>
-             </TouchableOpacity>
+       <View className='flex-1'>
+             <View className='flex-row justify-center items-center px-2 py-2'>
+                <SearchBar />
              </View>
-             <View className="w-full justify-center">
+             
+             <View className=" flex-1 w-full ">
               {postsLoading ? (
                 <Text className="text-center">Loading posts...</Text>
               ):(
