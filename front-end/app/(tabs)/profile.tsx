@@ -37,7 +37,7 @@ export default function Profile() {
         setPostsLoading(false)
       }
     }
-    const signOut = async () => {
+  const signOut = async () => {
     setLoading(true);
     const {error} = await supabase.auth.signOut();
     setLoading(false);

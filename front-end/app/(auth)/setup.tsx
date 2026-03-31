@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, TextInput, Alert, Image} from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase} from "@/lib/supabaseClient"
 import { router } from "expo-router";
-import { useState } from "react"
+import { useRef, useState } from "react"
 import * as ImagePicker from 'expo-image-picker'
 
 export default function Setup(){
@@ -11,6 +11,25 @@ export default function Setup(){
     const [loading, setLoading] = useState(false);
     const [avatarUri, setAvatarUri] = useState<string | null>(null);
     const [uploading, setUploading]= useState(false);
+    const [usernameStatus, setUsernameStatus] = useState<"idle" |"checking"|"taken"|"available">("idle")
+
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const checkUsername = async(value: string)=>{
+        setUserName(value);
+        if(debounceRef.current) clearTimeout(debounceRef.current); // so it doesn't fire all the freaking time
+        if (value.length < 3) {
+            setUsernameStatus("idle"); 
+            return;
+        }
+        setUsernameStatus("checking");
+        debounceRef.current = setTimeout (async ()=>{
+            const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/check-username?username=${value}`);
+            const json = await res.json();
+            setUsernameStatus(json.taken ? "taken" : "available");
+        }, 500);
+    };
+
 
     const pickImage = async ()=>{
         const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -64,8 +83,13 @@ export default function Setup(){
             setUploading(false);
         }
     }
+ 
 
     const handleProfile = async () =>{
+        if (usernameStatus === "taken"){
+            Alert.alert("Error", "Please choose a different username");
+            return;
+        }
         setLoading(true);
 
         try {
@@ -90,6 +114,7 @@ export default function Setup(){
 
     }
 
+
     return(
     <SafeAreaView className="bg-indigo-300 flex-1 items-center justify-center">
         <View className="p-5 m-auto">
@@ -105,11 +130,14 @@ export default function Setup(){
             <Text className="p-1 text-center">Enter your username</Text>
 
             <TextInput
-                value = {username} onChangeText={setUserName}
+                value = {username} onChangeText={checkUsername}
                 autoCapitalize="none"
                 placeholder="username" placeholderTextColor="#94a3b8"
-                className="bg-slate-800 text-white rounded-xl px-4 py-3 mb-3"    
+                className="bg-slate-800 text-white rounded-xl px-4 py-3 mb-2"    
             />
+            {usernameStatus === "checking" && <Text className="text-slate-700 text-xs mt-1 shadow-white">Checking...</Text>}
+            {usernameStatus === "taken" && <Text className="text-red-700 text-center text-xs mt-1 ">Username already taken</Text>}
+            {usernameStatus === "available" && <Text className="text-green-700 text-center text-xs   mt-1">Username available</Text>}
             <Text className="p-1 text-center">Enter your name</Text>
             <TextInput
                 value = {name} onChangeText={setName}

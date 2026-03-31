@@ -1,7 +1,7 @@
 import { View, TouchableOpacity, Text, Alert, Image, FlatList } from "react-native"
 import { router } from 'expo-router';
 import { supabase } from "@/lib/supabaseClient"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Post from "@/components/Post";
 import SearchBar from "@/components/SearchBar";
 
@@ -9,7 +9,12 @@ export default function HomePage(){
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const debounceRef = useRef<number|null>(null);
+  const TABS = ["Users", "Posts", "Tags"]
+  const [activeTab, setActiveTab] = useState("Users");
+
   const getPosts = async ()=>{
     setPostsLoading(true);
     try{
@@ -34,27 +39,20 @@ export default function HomePage(){
       setPostsLoading(false)
     }
   }
-  const handleSearch = async ()=>{
-    setSearchLoading(true);
-    try{
-      const {data: {session}} = await supabase.auth.getSession();
-
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/search/`,{
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`
-        },
+  const handleSearch = async (text:string, tab:string)=>{
+    setQuery(text);
+    if(debounceRef.current) clearTimeout(debounceRef.current);
+    if(text.length < 2){setResults([]); return;}
+    const endpoint = tab === "Users" ? "users" : tab === "Posts" ? "posts" : "tags";
+    debounceRef.current = setTimeout(async()=>{
+      const {data : {session}} = await supabase.auth.getSession();
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/search/${endpoint}?q=${text}`, { 
+        headers: { 
+          Authorization: `Bearer ${session?.access_token}` 
+        } 
       });
-      if (!response.ok){
-        const err = await response.json();
-      }
-      const data = await response.json();
-      // here we set the search results 
-    } catch (error){
-      Alert.alert("Error", (error as Error).message)
-    } finally{
-      setSearchLoading(false);
-    }
+      setResults(await res.json());
+    },300)
   }
 
   useEffect(()=>{
@@ -74,7 +72,7 @@ export default function HomePage(){
     return(
        <View className='flex-1'>
              <View className='flex-row justify-center items-center px-2 py-2'>
-                <SearchBar />
+                <SearchBar onSubmit={handleSearch} />
              </View>
              
              <View className=" flex-1 w-full ">

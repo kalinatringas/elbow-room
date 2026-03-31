@@ -80,6 +80,47 @@ def request_post(post: PostRequest = Body(...), user=Depends(get_current_user)):
     response = supabase_admin.table("posts").insert(data).execute()
     return response.data[0]
  
+# seach for different things
+@app.get('search/users')
+def search_users(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("profiles")\
+    .select("id, username, name, avatar_url")\
+    .ilike("username", f"%{q}%") \
+    .limit(limit)\
+    .execute()
+    return response.data
+
+@app.get('search/posts')
+def search_posts(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("posts")\
+    .select("*")\
+    .ilike("content", f"%{q}%") \
+    .is_("deleted_at", None)\
+    .limit(limit)\
+    .execute()
+    return response.data
+
+@app.get('search/tags')
+def search_posts(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("tags")\
+    .select("*")\
+    .ilike("name", f"%{q}%") \
+    .limit(limit)\
+    .execute()
+    return response.data
+
 # get a single user by ID
 @app.get("/user/{user_id}", status_code=200)
 def get_user(user_id: str):
@@ -228,3 +269,51 @@ async def update_user(username: str = Form(None),
     if not result.data:
         raise HTTPException(status_code=500, detail="Update failed")
     return result.data[0]
+
+#for searching posts via user
+@app.get("/users/{user_id}/posts", response_model=CursorPagination)
+def get_user_post(
+    user_id: str,
+    cursor: Optional[str] = Query(None, description="Fetch posts after this post ID"),
+    limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
+    user=Depends(get_current_user),
+):
+    user_check = supabase.table('profiles').select('id').eq("id", user_id).execute()
+    if not user_check:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+
+    query = supabase.table("posts") \
+        .select("*, post_likes(user_id)") \
+        .eq('author_id', user_id) \
+        .order("created_at", desc=True) \
+        .is_("deleted_at", None)
+
+    if cursor:
+        query = query.lt("created_at", cursor)
+
+    response = query.limit(limit+1).execute()
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    has_more = len(posts) > limit
+    posts = response.data[:limit]
+
+
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(
+            l["user_id"] == str(user.id) for l in likes
+        )
+
+    next_cursor = posts[-1]["created_at"] if has_more else None
+
+    return {"items": posts, "next_cursor": next_cursor}
+
+
+@app.get("/users/check-username")
+def check_username(username: str = Query(...)):
+    response = supabase_admin.table("profiles").select("username").eq("username", username).execute()
+    return {"taken": len(response.data) > 0}
