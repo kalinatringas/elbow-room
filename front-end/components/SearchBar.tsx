@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { TextInput, TouchableOpacity, View } from "react-native"
+import { TextInput, TouchableOpacity, Keyboard, TouchableWithoutFeedback, View } from "react-native"
 
 type SearchBarProps = {
     searchInput : string;
@@ -15,8 +15,8 @@ export default function SearchBar(){
         //clearError();
     }
 
-
-    return(<>
+    return( 
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View className="p-2 flex-row w-full">
             <TextInput
                 className="p-3 self-stretch w-full bg-white rounded-2xl border-black text-black" 
@@ -27,5 +27,6 @@ export default function SearchBar(){
             />
             <TouchableOpacity className="ml-2 bg-indigo-300 rounded-2xl text-center p-2">Submit</TouchableOpacity>
         </View>
-    </>)
+
+    </TouchableWithoutFeedback>)
 }

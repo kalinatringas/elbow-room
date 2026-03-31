@@ -11,6 +11,7 @@ export default function Setup(){
     const [loading, setLoading] = useState(false);
     const [avatarUri, setAvatarUri] = useState<string | null>(null);
     const [uploading, setUploading]= useState(false);
+    
 
     const pickImage = async ()=>{
         const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -64,6 +65,7 @@ export default function Setup(){
             setUploading(false);
         }
     }
+
 
     const handleProfile = async () =>{
         setLoading(true);

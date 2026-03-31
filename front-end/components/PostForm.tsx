@@ -1,7 +1,5 @@
-import {View, Text, TextInput, TouchableOpacity, useWindowDimensions, NativeSyntheticEvent, TextInputContentSizeChangeEvent} from 'react-native'; // renders something
+import {View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard} from 'react-native'; // renders something
 import {useState} from 'react'; // tracks what user is typing
-import {StyleSheet} from 'react-native'; // styles for button
-import {TextInputContentSizeChangeEventData} from 'react-native'
 import { useRef } from 'react';
 // defines the props that the PostForm component expects to receive
 // lowkey don't know what this do 
@@ -58,11 +56,11 @@ export default function PostForm({ onSubmit, loading = false }: Props){
     
 
    return (
-    <View className='w-full p-3'>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <View className='w-full p-3 flex-1 justify-center'>
         <View className='bg-indigo-100 rounded-xl w-full'>
             <TextInput
                 className='p-3 m-2 self-stretch'
-                ref={inputRef}
                 value={textbox}
                 onChangeText={changeText}
                 placeholder="So... what's on your mind?"
@@ -78,5 +76,7 @@ export default function PostForm({ onSubmit, loading = false }: Props){
             <Text className='text-center text-lg text-pink-900'>{loading ? "Posting..." : "Post"}</Text>
         </TouchableOpacity>
     </View>
+    </TouchableWithoutFeedback>
+
 );
 }

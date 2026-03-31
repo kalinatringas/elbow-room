@@ -73,6 +73,7 @@ export default function HomePage(){
 
     return(
        <View className='flex-1'>
+              <View className="h-16"></View>
              <View className='flex-row justify-center items-center px-2 py-2'>
                 <SearchBar />
              </View>
@@ -89,7 +90,8 @@ export default function HomePage(){
                     <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} avatar_url={item.profiles?.avatar_url} />
                   )}
                   />
-              )}   
+              )} 
+              <View className="h-28"></View>  
              </View>   
              </View>  
     )
