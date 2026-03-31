@@ -6,23 +6,10 @@ import Post from "@/components/Post";
 import SearchBar from "@/components/SearchBar";
 
 export default function HomePage(){
-  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
-  
-  const signOut = async () => {
-    setLoading(true);
-    const {error} = await supabase.auth.signOut();
-    setLoading(false);
-    if (error){
-      Alert.alert("Error Signing out", error.message);
-    } else {
-      // return to login screen
-      router.replace('/landing');
-    }
-  }
-
+  const [searchLoading, setSearchLoading] = useState(false);
   const getPosts = async ()=>{
     setPostsLoading(true);
     try{
@@ -47,6 +34,29 @@ export default function HomePage(){
       setPostsLoading(false)
     }
   }
+  const handleSearch = async ()=>{
+    setSearchLoading(true);
+    try{
+      const {data: {session}} = await supabase.auth.getSession();
+
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/search/`,{
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        },
+      });
+      if (!response.ok){
+        const err = await response.json();
+      }
+      const data = await response.json();
+      // here we set the search results 
+    } catch (error){
+      Alert.alert("Error", (error as Error).message)
+    } finally{
+      setSearchLoading(false);
+    }
+  }
+
   useEffect(()=>{
     const fetchProfile = async ()=>{
       const {data:{user}} = await supabase.auth.getUser();
@@ -63,6 +73,7 @@ export default function HomePage(){
 
     return(
        <View className='flex-1'>
+              <View className="h-16"></View>
              <View className='flex-row justify-center items-center px-2 py-2'>
                 <SearchBar />
              </View>
@@ -79,7 +90,8 @@ export default function HomePage(){
                     <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} avatar_url={item.profiles?.avatar_url} />
                   )}
                   />
-              )}   
+              )} 
+              <View className="h-28"></View>  
              </View>   
              </View>  
     )

@@ -11,6 +11,7 @@ export default function Setup(){
     const [loading, setLoading] = useState(false);
     const [avatarUri, setAvatarUri] = useState<string | null>(null);
     const [uploading, setUploading]= useState(false);
+    
 
     const pickImage = async ()=>{
         const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -42,7 +43,7 @@ export default function Setup(){
             const formData = new FormData();
             formData.append("file", blob, "avatar.jpg");
 
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/`,{ //replace with deplayed BE 
+            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/upload-avatar`,{
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${session?.access_token}`,
@@ -64,6 +65,7 @@ export default function Setup(){
             setUploading(false);
         }
     }
+
 
     const handleProfile = async () =>{
         setLoading(true);

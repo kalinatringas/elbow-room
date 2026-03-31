@@ -184,7 +184,7 @@ async def process_and_upload_avatar(
         print("Image upload error", e)
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
     public_url = supabase.storage.from_('avatars').get_public_url(file_path)
-    supabase.table("profiles").update({"avatar_url":public_url}).eq("id", user.id).execute()
+    supabase.table("profiles").update({"avatar_url":public_url}).eq("id", user_id).execute()
 
     return public_url
 @app.post("/upload-avatar")
