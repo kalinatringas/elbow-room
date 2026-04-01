@@ -4,7 +4,7 @@ import { TextInput, TouchableOpacity, Keyboard, TouchableWithoutFeedback, View }
 type SearchBarProps = {
     searchInput : string;
     onSubmit: (content: string, tabs: string)=>void;
-    TABS: 
+    
 }
 
 export default function SearchBar({searchInput, onSubmit}: SearchBarProps){
@@ -29,7 +29,7 @@ export default function SearchBar({searchInput, onSubmit}: SearchBarProps){
             <TouchableOpacity className="ml-2 bg-indigo-300 rounded-2xl text-center p-2"
                 onPress={onSubmit}
             >Submit</TouchableOpacity>
-            <
+
         </View>
 
     </TouchableWithoutFeedback>)
