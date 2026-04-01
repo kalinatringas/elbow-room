@@ -89,7 +89,7 @@ def get_user(user_id: str):
     return response.data[0]
 
 # getting posts and implementing cursor pagination
-@app.get("/posts/")
+@app.get("/posts/", response_model=CursorPagination)
 def get_posts(
     cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
@@ -123,12 +123,6 @@ def get_posts(
         post["like_count"] = len(likes)
         post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
         post["profiles"] = profiles_map.get(post["author_id"])
-
-    
-    for post in posts:
-        likes = post.get("post_likes", [])
-        post["like_count"] = len(likes)
-        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
 
     next_cursor = posts[-1]["created_at"] if has_more and posts else None
 
