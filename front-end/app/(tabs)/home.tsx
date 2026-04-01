@@ -3,23 +3,51 @@ import { router } from 'expo-router';
 import { supabase } from "@/lib/supabaseClient"
 import { useState, useEffect } from "react";
 import Post from "@/components/Post";
-
+import SearchBar from "@/components/SearchBar";
+type PostItem = {
+  id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  like_count: number;
+  liked_by_me: boolean;
+  profiles?: {
+    username: string;
+    avatar_url?: string;
+  };
+};
 export default function HomePage(){
-  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<PostItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
-  const signOut = async () => {
-    setLoading(true);
-    const {error} = await supabase.auth.signOut();
-    setLoading(false);
-    if (error){
-      Alert.alert("Error Signing out", error.message);
-    } else {
-      // return to login screen
-      router.replace('/landing');
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  const onLike = async (postID:string)=>{
+    // fetch current like count, increase 
+    try{
+      const{data:{session}}= await supabase.auth.getSession();
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/${postID}/like`,{
+        method: "POST",
+        headers:{
+          Authorization: `Bearer ${session?.access_token}`
+        },
+      });
+      if (!response.ok){
+        throw new Error("Failed to toggle like");
+      }
+      const {liked, like_count} = await response.json();
+      setPosts(prev=>
+        prev.map(p=>
+          p.id === postID
+          ?{...p, liked_by_me:liked, like_count:like_count}
+          : p
+        )
+      );
+    }catch(error){
+      Alert.alert("Error", (error as Error).message);
     }
   }
+
 
   const getPosts = async ()=>{
     setPostsLoading(true);
@@ -37,6 +65,7 @@ export default function HomePage(){
         throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
       }
       const data = await response.json();
+      console.log("First post:", JSON.stringify(data.items[0], null, 2));
       setPosts(data.items);
     } catch (error){
       Alert.alert("Error", (error as Error).message);
@@ -44,6 +73,29 @@ export default function HomePage(){
       setPostsLoading(false)
     }
   }
+  const handleSearch = async ()=>{
+    setSearchLoading(true);
+    try{
+      const {data: {session}} = await supabase.auth.getSession();
+
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/search/`,{
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        },
+      });
+      if (!response.ok){
+        const err = await response.json();
+      }
+      const data = await response.json();
+      // here we set the search results 
+    } catch (error){
+      Alert.alert("Error", (error as Error).message)
+    } finally{
+      setSearchLoading(false);
+    }
+  }
+
   useEffect(()=>{
     const fetchProfile = async ()=>{
       const {data:{user}} = await supabase.auth.getUser();
@@ -59,19 +111,13 @@ export default function HomePage(){
   }, [])
 
     return(
-       <View className='flex-1 justify-center items-center'>
-             <View className='top-0 right-0 fixed'>
-             <TouchableOpacity
-               onPress={signOut}
-               disabled={loading}
-               className={`rounded-xl text-white py-3 items-center m-1 p-2${
-                 loading ? "bg-indigo-400" : "bg-indigo-400 active:bg-indigo-500"
-               }`}
-                 >
-                   <Text>Sign Out</Text>
-             </TouchableOpacity>
+       <View className='flex-1'>
+              <View className="h-16"></View>
+             <View className='flex-row justify-center items-center px-2 py-2'>
+                <SearchBar />
              </View>
-             <View className="w-full justify-center">
+             
+             <View className=" flex-1 w-full ">
               {postsLoading ? (
                 <Text className="text-center">Loading posts...</Text>
               ):(
@@ -80,10 +126,11 @@ export default function HomePage(){
                   data={posts}
                   keyExtractor={(item)=>item.id}
                   renderItem={({item})=>(
-                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} avatar_url={item.profiles?.avatar_url} />
+                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} liked_by_me={item.liked_by_me} onLike={()=>onLike(item.id)} avatar_url={item.profiles?.avatar_url} />
                   )}
                   />
-              )}   
+              )} 
+              <View className="h-28"></View>  
              </View>   
              </View>  
     )
