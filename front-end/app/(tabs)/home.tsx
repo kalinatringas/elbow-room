@@ -4,12 +4,51 @@ import { supabase } from "@/lib/supabaseClient"
 import { useState, useEffect } from "react";
 import Post from "@/components/Post";
 import SearchBar from "@/components/SearchBar";
-
+type PostItem = {
+  id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  like_count: number;
+  liked_by_me: boolean;
+  profiles?: {
+    username: string;
+    avatar_url?: string;
+  };
+};
 export default function HomePage(){
   const [profile, setProfile] = useState<any>(null);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<PostItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  const onLike = async (postID:string)=>{
+    // fetch current like count, increase 
+    try{
+      const{data:{session}}= await supabase.auth.getSession();
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/${postID}/like`,{
+        method: "POST",
+        headers:{
+          Authorization: `Bearer ${session?.access_token}`
+        },
+      });
+      if (!response.ok){
+        throw new Error("Failed to toggle like");
+      }
+      const {liked, like_count} = await response.json();
+      setPosts(prev=>
+        prev.map(p=>
+          p.id === postID
+          ?{...p, liked_by_me:liked, like_count:like_count}
+          : p
+        )
+      );
+    }catch(error){
+      Alert.alert("Error", (error as Error).message);
+    }
+  }
+
+
   const getPosts = async ()=>{
     setPostsLoading(true);
     try{
@@ -87,7 +126,7 @@ export default function HomePage(){
                   data={posts}
                   keyExtractor={(item)=>item.id}
                   renderItem={({item})=>(
-                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} avatar_url={item.profiles?.avatar_url} />
+                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} liked_by_me={item.liked_by_me} onLike={()=>onLike(item.id)} avatar_url={item.profiles?.avatar_url} />
                   )}
                   />
               )} 

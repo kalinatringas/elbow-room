@@ -95,7 +95,7 @@ def get_posts(
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
     user=Depends(get_current_user)
 ):
-    query = supabase.table("posts") \
+    query = supabase_admin.table("posts") \
         .select("*, post_likes(user_id), profiles!posts_author_id_fkey(username, avatar_url)") \
         .order("created_at", desc=True) \
         .is_("deleted_at", None)
@@ -130,8 +130,11 @@ def get_posts(
 
 # get post from user (for profile page)
 @app.get("/posts/me/")
-def get_posts(user=Depends(get_current_user)):
-    response = supabase_admin.table("posts").select("*, profiles!posts_author_id_fkey(username, avatar_url)").eq("author_id", str(user.id)).order("created_at", desc=True).execute()
+def get_my_posts(user=Depends(get_current_user)):
+    response = supabase_admin.table("posts").select("*, post_likes(user_id),profiles!posts_author_id_fkey(username, avatar_url)")\
+        .eq("author_id", str(user.id))\
+        .order("created_at", desc=True)\
+        .execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
     posts = response.data
@@ -216,14 +219,43 @@ async def update_user(username: str = Form(None),
             raise HTTPException(status_code=400, detail="No fields to update")
         
         result = supabase_admin.table("profiles").update(updates).eq("id", user.id).execute()
-
-        # supabase.table("profiles").update({"username":patch.username}).eq("id", user.id).execute()
-        # supabase.table("profiles").update({"bio":patch.bio}).eq("id", user.id).execute()
-        # supabase.table("profiles").update({"name":patch.name}).eq("id", user.id).execute()
-        # upload_avatar(file)
         if not result.data:
             raise HTTPException(status_code=500, detail="Update failed")
         return result.data[0]
     except Exception as e:
-        print("update_user error:", e)  # ← check your terminal for the real cause
+        print ("update_user error:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post('/posts/{post_id}/like')
+def toggle_like(post_id: str, user=Depends(get_current_user)):
+    user_id = str(user.id)
+    try: 
+        existing = supabase_admin.table("post_likes")\
+        .select("*")\
+        .eq("post_id", post_id)\
+        .eq("user_id", user_id)\
+        .execute()
+        if existing.data:
+            #unlike
+            supabase_admin.table("post_likes")\
+            .delete()\
+            .eq("post_id", post_id)\
+            .eq("user_id", user_id)\
+            .execute()
+            liked = False
+        else:
+            supabase_admin.table("post_likes")\
+            .insert({"post_id":post_id, "user_id":user_id})\
+            .execute()
+            liked = True
+        count_resp = supabase_admin.table("post_likes")\
+        .select("*",count="exact")\
+        .eq("post_id", post_id)\
+        .execute()
+        return {"liked":liked, "like_count": count_resp.count}
+    except Exception as e:
+        print("toggle_like error: ", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+        
+     
