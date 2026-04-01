@@ -80,6 +80,47 @@ def request_post(post: PostRequest = Body(...), user=Depends(get_current_user)):
     response = supabase_admin.table("posts").insert(data).execute()
     return response.data[0]
  
+# seach for different things
+@app.get('search/users')
+def search_users(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("profiles")\
+    .select("id, username, name, avatar_url")\
+    .ilike("username", f"%{q}%") \
+    .limit(limit)\
+    .execute()
+    return response.data
+
+@app.get('search/posts')
+def search_posts(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("posts")\
+    .select("*")\
+    .ilike("content", f"%{q}%") \
+    .is_("deleted_at", None)\
+    .limit(limit)\
+    .execute()
+    return response.data
+
+@app.get('search/tags')
+def search_posts(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("tags")\
+    .select("*")\
+    .ilike("name", f"%{q}%") \
+    .limit(limit)\
+    .execute()
+    return response.data
+
 # get a single user by ID
 @app.get("/user/{user_id}", status_code=200)
 def get_user(user_id: str):
