@@ -54,9 +54,9 @@ class PostResponse(BaseModel):
     author_id: UUID
     content: str
     created_at: datetime
-    like_count: int = 0
-    liked_by_me: bool = False
-    profiles: Optional[dict] = None
+    like_count: int 
+    liked_by_me: bool 
+    profiles: Optional[dict] 
     
 
 #pagination model
@@ -109,12 +109,13 @@ def get_posts(
                 created_at,
                 like_count,
                 profiles!posts_author_id_fkey(username, avatar_url)
+                post_likes!post_likes_user_id_fkey(user_id)
             """)\
             .is_("deleted_at", None)\
             .order("created_at", desc=True)
 
         if cursor:
-            query = query.lt("created_at", cursor)
+            query = query.lt("created_at", cursor)  
 
         posts_resp = query.limit(limit + 1).execute()
 
@@ -126,16 +127,17 @@ def get_posts(
 
         post_ids = [p["id"] for p in posts]
 
-        likes_resp = supabase.table("post_likes")\
-            .select("post_id")\
-            .eq("user_id", str(user.id))\
-            .in_("post_id", post_ids)\
-            .execute()
-
-        liked_post_ids = {like["post_id"] for like in likes_resp.data}
+        like_resp = supabase_admin.table("post_likes")\
+        .select("post_id")\
+        .eq("user_id", user.id)\
+        .in_("post_id", post_ids)\
+        .execute()
+        
+        liked_post_ids = {str(like["post_id"]) for like in like_resp.data}
 
         for post in posts:
-            post["liked_by_me"] = post["id"] in liked_post_ids
+            post["liked_by_me"] = str(post["id"]) in liked_post_ids
+    
 
         next_cursor = posts[-1]["created_at"] if has_more else None
 
@@ -226,6 +228,58 @@ async def update_user(username: str = Form(None),
         print ("update_user error:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/posts/me/")
+def get_my_posts(
+    cursor: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    user=Depends(get_current_user)
+):
+    try:
+        query = supabase_admin.table("posts")\
+            .select("""
+                id,
+                author_id,
+                content,
+                created_at,
+                like_count,
+                profiles!posts_author_id_fkey(username, avatar_url)
+            """)\
+            .eq("author_id", str(user.id))\
+            .is_("deleted_at", None)\
+            .order("created_at", desc=True)
+
+        if cursor:
+            query = query.lt("created_at", cursor)
+
+        posts_resp = query.limit(limit + 1).execute()
+
+        if not posts_resp.data:
+            return {"items": [], "next_cursor": None}
+
+        posts = posts_resp.data[:limit]
+        has_more = len(posts_resp.data) > limit
+
+        post_ids = [p["id"] for p in posts]
+
+        likes_resp = supabase_admin.table("post_likes")\
+            .select("post_id")\
+            .eq("user_id", str(user.id))\
+            .in_("post_id", post_ids)\
+            .execute()
+
+        liked_post_ids = {str(like["post_id"]) for like in likes_resp.data}
+
+        for post in posts:
+            post["liked_by_me"] = str(post["id"]) in liked_post_ids
+
+        next_cursor = posts[-1]["created_at"] if has_more else None
+
+        return {"items": posts, "next_cursor": next_cursor}
+
+    except Exception as e:
+        print("get_my_posts error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post('/posts/{post_id}/like')
 def toggle_like(post_id: str, user=Depends(get_current_user)):
     user_id = str(user.id)
@@ -252,7 +306,13 @@ def toggle_like(post_id: str, user=Depends(get_current_user)):
         .select("*",count="exact")\
         .eq("post_id", post_id)\
         .execute()
-        return {"liked":liked, "like_count": count_resp.count}
+        new_count = count_resp.count or 0
+        supabase_admin.table("posts") \
+        .update({"like_count": new_count}) \
+        .eq("id", post_id) \
+        .execute()
+
+        return {"liked":liked, "like_count": new_count}
     except Exception as e:
         print("toggle_like error: ", e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -291,3 +351,43 @@ def get_tag_post(
     next_cursor = posts[-1]["created_at"] if posts else None
 
     return {"items": posts, "next_cursor": next_cursor}
+
+@app.get('search/users')
+def search_users(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("profiles")\
+    .select("id, username, name, avatar_url")\
+    .ilike("username", f"%{q}%") \
+    .limit(limit)\
+    .execute()
+    return response.data
+
+@app.get('search/posts')
+def search_posts(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("posts")\
+    .select("*")\
+    .ilike("content", f"%{q}%") \
+    .is_("deleted_at", None)\
+    .limit(limit)\
+    .execute()
+    return response.data
+
+@app.get('search/tags')
+def search_posts(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    user= Depends(get_current_user)
+):
+    response = supabase.table("tags")\
+    .select("*")\
+    .ilike("name", f"%{q}%") \
+    .limit(limit)\
+    .execute()
+    return response.data
