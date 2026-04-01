@@ -100,7 +100,6 @@ def get_posts(
     user=Depends(get_current_user)
 ):
     try:
-        # 🔹 Base feed query (FAST now)
         query = supabase.table("posts")\
             .select("""
                 id,
@@ -186,6 +185,7 @@ async def process_and_upload_avatar(
     supabase.table("profiles").update({"avatar_url":public_url}).eq("id", user_id).execute()
 
     return public_url
+
 @app.post("/upload-avatar")
 async def upload_avatar_route(file:UploadFile = File(...),
                               user = Depends(get_current_user)):
@@ -279,6 +279,59 @@ def get_my_posts(
     except Exception as e:
         print("get_my_posts error:", e)
         raise HTTPException(status_code=500, detail=str(e))
+@app.get("/users/{user_id}/post")
+def get_user_posts(
+    user_id: str,
+    cursor: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    user=Depends(get_current_user)
+):
+    try:
+        query = supabase_admin.table("posts")\
+            .select("""
+                id,
+                author_id,
+                content,
+                created_at,
+                like_count,
+                profiles!posts_author_id_fkey(username, avatar_url)
+            """)\
+            .eq("author_id", user_id)\
+            .is_("deleted_at", None)\
+            .order("created_at", desc=True)
+
+        if cursor:
+            query = query.lt("created_at", cursor)
+
+        posts_resp = query.limit(limit + 1).execute()
+
+        if not posts_resp.data:
+            return {"items": [], "next_cursor": None}
+
+        posts = posts_resp.data[:limit]
+        has_more = len(posts_resp.data) > limit
+
+        post_ids = [p["id"] for p in posts]
+
+        likes_resp = supabase_admin.table("post_likes")\
+            .select("post_id")\
+            .eq("user_id", str(user.id))\
+            .in_("post_id", post_ids)\
+            .execute()
+
+        liked_post_ids = {str(like["post_id"]) for like in likes_resp.data}
+
+        for post in posts:
+            post["liked_by_me"] = str(post["id"]) in liked_post_ids
+
+        next_cursor = posts[-1]["created_at"] if has_more else None
+
+        return {"items": posts, "next_cursor": next_cursor}
+
+    except Exception as e:
+        print("get_my_posts error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @app.post('/posts/{post_id}/like')
 def toggle_like(post_id: str, user=Depends(get_current_user)):
@@ -352,7 +405,7 @@ def get_tag_post(
 
     return {"items": posts, "next_cursor": next_cursor}
 
-@app.get('search/users')
+@app.get('/search/users')
 def search_users(
     q: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=50),
@@ -365,7 +418,7 @@ def search_users(
     .execute()
     return response.data
 
-@app.get('search/posts')
+@app.get('/search/posts')
 def search_posts(
     q: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=50),
@@ -379,8 +432,8 @@ def search_posts(
     .execute()
     return response.data
 
-@app.get('search/tags')
-def search_posts(
+@app.get('/search/tags')
+def search_tags(
     q: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=50),
     user= Depends(get_current_user)

@@ -1,27 +1,35 @@
 import { View,Text, Image, TouchableOpacity } from "react-native"
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 type Props ={
     author: string,
     text: string,
+    author_id: string,
     like_count: number,
     liked_by_me?:boolean,
     avatar_url?: string,
     onLike: ()=>void;
 }
 
-export default function Post({author, text, like_count, liked_by_me, avatar_url, onLike}:Props){
+export default function Post({author, text, author_id, like_count, liked_by_me, avatar_url, onLike}:Props){
     //
-
+    const handleShowUser=()=>{
+        router.push(`/(tabs)/${author_id}`);
+        
+    }
     return(
         <View className="bg-indigo-300 rounded-xl m-2 p-4">
             <View className="flex-row items-center mb-2">
-                {avatar_url ? (
-                    <Image source={{ uri: avatar_url }} className="w-10 h-10 rounded-full mr-3" />
-                ) : (
-                    <View className="w-10 h-10 rounded-full bg-gray-400 mr-3" />
-                )}
-                <Text className="text-lg font-medium">{author}</Text>
+                <TouchableOpacity
+                onPress={handleShowUser}>
+                    {avatar_url ? (
+                        <Image source={{ uri: avatar_url }} className="w-10 h-10 rounded-full mr-3" />
+                    ) : (
+                        <View className="w-10 h-10 rounded-full bg-gray-400 mr-3" />
+                    )}
+                    <Text className="text-lg font-medium">{author}</Text>
+                </TouchableOpacity>        
             </View>
             <Text className="text-center mb-2">{text}</Text>
             <View className="flex-row items-center justify-between">
