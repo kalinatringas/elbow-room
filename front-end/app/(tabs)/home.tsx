@@ -122,6 +122,7 @@ export default function HomePage(){
                 <FlatList 
                   className="w-full"
                   data={posts}
+                  extraData={posts}
                   keyExtractor={(item)=>item.id}
                   renderItem={({item})=>(
                     <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} liked_by_me={item.liked_by_me} onLike={()=>onLike(item.id)} avatar_url={item.profiles?.avatar_url} />

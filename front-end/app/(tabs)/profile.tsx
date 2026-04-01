@@ -14,6 +14,32 @@ export default function Profile() {
   const [postsLoading, setPostsLoading] = useState(false);
   const [menuActive, setMenuActive] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const onLike = async (postID:string)=>{
+    // fetch current like count, increase 
+    try{
+      const{data:{session}}= await supabase.auth.getSession();
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/${postID}/like`,{
+        method: "POST",
+        headers:{
+          Authorization: `Bearer ${session?.access_token}`
+        },
+      });
+      if (!response.ok){
+        throw new Error("Failed to toggle like");
+      }
+      const {liked, like_count} = await response.json();
+      setPosts(prev=>
+        prev.map(p=>
+          p.id === postID
+          ?{...p, liked_by_me:liked, like_count:like_count}
+          : p
+        )
+      );
+    }catch(error){
+      Alert.alert("Error", (error as Error).message);
+    }
+  }
   const getPosts = async ()=>{
       setPostsLoading(true);
       try{
@@ -30,7 +56,7 @@ export default function Profile() {
           throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
         }
         const data = await response.json();
-        setPosts(data);
+        setPosts(data.items);
       } catch (error){
         Alert.alert("Error", (error as Error).message);
       }finally{
@@ -73,6 +99,7 @@ export default function Profile() {
           <Ionicons name='mail-outline' size={32} color="white"/>
         </View>
         <View className='flex-col'>
+          <View className='h-12'></View>
           <Image source={{uri: profile?.avatar_url}} className='w-24 h-24 rounded-full'/>
           <Text className="text-xl font-bold text-center text-slate-800">{profile?.name}</Text>
         </View>
@@ -80,17 +107,19 @@ export default function Profile() {
           <Ionicons name="menu-outline" size={32} color="white"/>
         </TouchableOpacity>
       </View>
-      <View className='justify-center w-full'>
+      <View className='w-full flex-1'>
          {postsLoading? (
         <Text>Loading posts... </Text>
       ):(<FlatList
         data = {posts}
+        extraData={posts}
         className='w-full'
         keyExtractor={(item)=>item.id}
          renderItem={({item})=>(
-          <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} />
+          <Post author={item.profiles?.username ?? item.author_id} avatar_url={profile.avatar_url} text={item.content} liked_by_me={item.liked_by_me} onLike={()=>onLike(item.id)} like_count={item.like_count} />
         )}
       />)}
+      <View className='h-12'></View>
       </View>
       {/* The menu pop  up */}
       {menuActive && 
