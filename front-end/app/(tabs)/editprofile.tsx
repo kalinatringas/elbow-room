@@ -1,7 +1,6 @@
 import { View, Text, TouchableOpacity, TextInput, FlatList, Alert, Image } from 'react-native';
 import { supabase } from '@/lib/supabaseClient';
 import { useState, useEffect } from 'react';
-import Post from '@/components/Post';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as ImagePicker from 'expo-image-picker'
@@ -96,12 +95,12 @@ export default function EditProfile(){
                 throw new Error("Upload Failed");
             }
             console.log("profile has been updated")
-            router.replace("/home")
+            router.replace("/profile")
         } catch (error){
             Alert.alert("Error", (error as Error).message);
         } finally{
             setLoading(false);
-            //router.replace("/home")
+            router.replace("/home")
         }
     }
     useEffect(()=>{
