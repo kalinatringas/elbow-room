@@ -89,7 +89,7 @@ def get_user(user_id: str):
     return response.data[0]
 
 # getting posts and implementing cursor pagination
-@app.get("/posts/", response_model=CursorPagination)
+@app.get("/posts/")
 def get_posts(
     cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
