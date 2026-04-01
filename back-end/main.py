@@ -57,6 +57,7 @@ class PostResponse(BaseModel):
     like_count: int = 0
     liked_by_me: bool = False
     profiles: Optional[dict] = None
+    
 
 #pagination model
 class CursorPagination(BaseModel):
@@ -83,47 +84,6 @@ def request_post(post: PostRequest = Body(...), user=Depends(get_current_user)):
     response = supabase_admin.table("posts").insert(data).execute()
     return response.data[0]
  
-# seach for different things
-@app.get('search/users')
-def search_users(
-    q: str = Query(..., min_length=1),
-    limit: int = Query(10, ge=1, le=50),
-    user= Depends(get_current_user)
-):
-    response = supabase.table("profiles")\
-    .select("id, username, name, avatar_url")\
-    .ilike("username", f"%{q}%") \
-    .limit(limit)\
-    .execute()
-    return response.data
-
-@app.get('search/posts')
-def search_posts(
-    q: str = Query(..., min_length=1),
-    limit: int = Query(10, ge=1, le=50),
-    user= Depends(get_current_user)
-):
-    response = supabase.table("posts")\
-    .select("*")\
-    .ilike("content", f"%{q}%") \
-    .is_("deleted_at", None)\
-    .limit(limit)\
-    .execute()
-    return response.data
-
-@app.get('search/tags')
-def search_posts(
-    q: str = Query(..., min_length=1),
-    limit: int = Query(10, ge=1, le=50),
-    user= Depends(get_current_user)
-):
-    response = supabase.table("tags")\
-    .select("*")\
-    .ilike("name", f"%{q}%") \
-    .limit(limit)\
-    .execute()
-    return response.data
-
 # get a single user by ID
 @app.get("/user/{user_id}", status_code=200)
 def get_user(user_id: str):
@@ -135,12 +95,13 @@ def get_user(user_id: str):
 # getting posts and implementing cursor pagination
 @app.get("/posts/")
 def get_posts(
-    cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
-    limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
+    cursor: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
     user=Depends(get_current_user)
 ):
-    try: 
-        db_query = supabase_admin.table("posts") \
+    try:
+        # 🔹 Base feed query (FAST now)
+        query = supabase.table("posts")\
             .select("""
                 id,
                 author_id,
@@ -148,20 +109,20 @@ def get_posts(
                 created_at,
                 like_count,
                 profiles!posts_author_id_fkey(username, avatar_url)
-            """) \
-            .order("created_at", desc=True) \
-            .is_("deleted_at", None)
+            """)\
+            .is_("deleted_at", None)\
+            .order("created_at", desc=True)
 
         if cursor:
-            db_query = db_query.lt("created_at", cursor)
+            query = query.lt("created_at", cursor)
 
-        post_resp = db_query.limit(limit + 1).execute()  # fetch one extra to check if there are more
+        posts_resp = query.limit(limit + 1).execute()
 
-        if not post_resp.data:
+        if not posts_resp.data:
             return {"items": [], "next_cursor": None}
 
-        posts = post_resp.data[:limit]  # take only up to limit
-        has_more = len(post_resp.data) > limit
+        posts = posts_resp.data[:limit]
+        has_more = len(posts_resp.data) > limit
 
         post_ids = [p["id"] for p in posts]
 
@@ -170,33 +131,19 @@ def get_posts(
             .eq("user_id", str(user.id))\
             .in_("post_id", post_ids)\
             .execute()
-        
+
         liked_post_ids = {like["post_id"] for like in likes_resp.data}
+
         for post in posts:
             post["liked_by_me"] = post["id"] in liked_post_ids
 
-        next_cursor = posts[-1]["created_at"] if has_more and posts else None
+        next_cursor = posts[-1]["created_at"] if has_more else None
+
         return {"items": posts, "next_cursor": next_cursor}
+
     except Exception as e:
-        print("Get posts error", e)
-        raise HTTPException(status_code=500, detail=(str(e)))
-
-# get post from user (for profile page)
-@app.get("/posts/me/")
-def get_my_posts(user=Depends(get_current_user)):
-    response = supabase_admin.table("posts").select("*, post_likes(user_id),profiles!posts_author_id_fkey(username, avatar_url)")\
-        .eq("author_id", str(user.id))\
-        .order("created_at", desc=True)\
-        .execute()
-    if not response.data:
-        raise HTTPException(status_code=404, detail="User not found")
-    posts = response.data
-    for post in posts:
-        likes = post.get("post_likes", [])
-        post["like_count"] = len(likes)
-        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
-    return posts
-
+        print("get_posts error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 async def process_and_upload_avatar(
     file: UploadFile,
@@ -295,16 +242,14 @@ def toggle_like(post_id: str, user=Depends(get_current_user)):
             .eq("post_id", post_id)\
             .eq("user_id", user_id)\
             .execute()
-            supabase_admin.rpc("decrement_like_count", {'post_id':post_id}).execute()
             liked = False
         else:
             supabase_admin.table("post_likes")\
             .insert({"post_id":post_id, "user_id":user_id})\
             .execute()
-            supabase_admin.rpc("increment_like_count", {"post_id": post_id}).execute()            
             liked = True
         count_resp = supabase_admin.table("post_likes")\
-        .select("like_count")\
+        .select("*",count="exact")\
         .eq("post_id", post_id)\
         .execute()
         return {"liked":liked, "like_count": count_resp.count}
