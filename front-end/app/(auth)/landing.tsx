@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, TextInput, KeyboardAvoidingView, Platform, Text, Modal, TouchableOpacity, Alert } from "react-native";
+import { View, TextInput, KeyboardAvoidingView, Platform, Text, Modal, TouchableOpacity, Alert, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabaseClient";
 import { router } from "expo-router";
@@ -11,22 +11,36 @@ export default function Landing() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
+  
   const handleLogin = async () => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) Alert.alert("Login error", error.message);
-    else router.replace("/(tabs)");
+    //else router.replace("/home");
   };
 
   const handleSignup = async () => {
+    console.log("function called!")
+    console.log("url:", process.env.EXPO_PUBLIC_SUPABASE_URL)
+    console.log("key:", process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)
     if (password !== confirmPassword) { Alert.alert("Error", "Passwords do not match"); return; }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    try {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    console.log("signup data:", JSON.stringify(data));
+    console.log("signup error:", JSON.stringify(error));
+    if (error) {
+      Alert.alert("Sign up error", error.message);
+      return;
+    }
+    router.replace("/setup");
+  } catch (e) {
+    console.log("caught error:", e)
+  } finally {
     setLoading(false);
-    if (error) Alert.alert("Sign up error", error.message);
-    else Alert.alert("Success", "Check your email!", [{ text: "OK", onPress: () => setActiveSheet(null) }]);
+  }
+    
   };
 
   return (
@@ -51,6 +65,8 @@ export default function Landing() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             className=""
             >
+          <Pressable>
+
         <View className="bg-white rounded-t-3xl p-6">
 
           <View className="w-10 h-1 bg-gray-300 rounded-full self-center mb-4" />
@@ -97,7 +113,15 @@ export default function Landing() {
           )}
 
           <TouchableOpacity
-            onPress={activeSheet === "Login" ? handleLogin : handleSignup}
+            onPress={ () =>{
+              console.log("button pressed, active sheet:", activeSheet);
+              if (activeSheet === "Login") {
+                handleLogin();
+                } else {
+                  handleSignup();
+                }
+              }
+            }
             disabled={loading}
             className={`rounded-xl p-4 items-center mt-2 ${loading ? "bg-indigo-300" : "bg-indigo-500"}`}>
             <Text className="text-white font-semibold">
@@ -107,6 +131,8 @@ export default function Landing() {
           </TouchableOpacity>
         
         </View>
+          </Pressable>
+
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>

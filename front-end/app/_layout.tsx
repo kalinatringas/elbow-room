@@ -1,13 +1,13 @@
-import { Stack, useRouter, useSegments } from 'expo-router'
+import { Stack, usePathname, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import "../global.css"
+
+
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const segments = useSegments()
   const router = useRouter()
 
   useEffect(() => {
@@ -16,32 +16,39 @@ export default function RootLayout() {
       setLoading(false)
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-      }
-    )
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)  
+      setLoading(false)
+    })
 
     return () => {
       listener.subscription.unsubscribe()
     }
   }, [])
 
+
   useEffect(() => {
     if (loading) return
-
-    const inAuthGroup = segments[0] === '(auth)'
-
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/landing')
+    if (!session){
+      router.replace('/landing')
+    } else{
+      checkProfile(session.user.id)
     }
+  }, [session, loading])
+  const checkProfile = async (userId: string) =>{
+    const {data} = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', userId)
+      .single()
 
-    if (session && inAuthGroup) {
-      router.replace('/(tabs)')
-    }
-  }, [session, loading, segments])
-
-  if (loading) return null
+      if (data?.username && data?.avatar_url ){
+        router.replace('/home')
+      } else{
+        router.replace('/setup')
+      }
+  }
+ // if (loading) return null
 
   return <Stack screenOptions={{ headerShown: false }} />
 }
