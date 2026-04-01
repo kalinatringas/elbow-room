@@ -1,17 +1,19 @@
-import { View, Text, TouchableOpacity, TextInput, Alert, Image} from "react-native"
+import { View, Text, TouchableOpacity, TextInput, FlatList, Alert, Image } from 'react-native';
+import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
+import Post from '@/components/Post';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase} from "@/lib/supabaseClient"
 import { router } from "expo-router";
-import { useState } from "react"
 import * as ImagePicker from 'expo-image-picker'
 
-export default function Setup(){
-    const [name, setName] = useState("");
-    const [username, setUserName] = useState("");
+export default function EditProfile(){
+    const [profile, setProfile] = useState<any>(null)
+    const [name, setName] = useState(profile?.name);
+    // const [bio, setBio] = useState("");
+    const [username, setUserName] = useState(profile?.username);
     const [loading, setLoading] = useState(false);
     const [avatarUri, setAvatarUri] = useState<string | null>(null);
     const [uploading, setUploading]= useState(false);
-    
 
     const pickImage = async ()=>{
         const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -29,7 +31,7 @@ export default function Setup(){
             setAvatarUri(result.assets[0].uri);
         }
     }
-
+    
     const uploadAvatar = async (userId: string) =>{
         if (!avatarUri) return null;
         if (!userId) return null;
@@ -39,10 +41,10 @@ export default function Setup(){
 
             const imageResponse= await fetch(avatarUri);
             const blob = await imageResponse.blob();
-
+    
             const formData = new FormData();
             formData.append("file", blob, "avatar.jpg");
-
+    
             const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/upload-avatar`,{
                 method: "POST",
                 headers: {
@@ -55,7 +57,7 @@ export default function Setup(){
                 console.log("FastAPI error:", err); 
                 throw new Error("Upload Failed");
             }
-
+    
             const data = await response.json();
             return data.avatar_url as string;
         } catch (error){
@@ -65,23 +67,35 @@ export default function Setup(){
             setUploading(false);
         }
     }
-
-
+    
     const handleProfile = async () =>{
         setLoading(true);
-
         try {
+            const {data : {session}} = await supabase.auth.getSession();
             const {data : {user}} = await supabase.auth.getUser();
-            if (!user) return null;
-            const avatarUrl = await uploadAvatar(user.id); 
+            if (!user) throw new Error ("user not found");
 
-            const {error} = await supabase.from('profiles').upsert({
-                id: user.id,
-                name,
-                username,
-                avatar_url: avatarUrl
+            const formData = new FormData();
+            if(name) formData.append("name", name);
+            if(username) formData.append("username", username);
+            if(avatarUri){
+                const imageResponse= await fetch(avatarUri);
+                const blob = await imageResponse.blob();
+                formData.append("file", blob, "avatar.jpg");
+            }
+            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/me`,{
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${session?.access_token}`,
+                },
+                body: formData,
             });
-            if (error) throw error;
+            if (!response.ok){
+                const err = await response.text();
+                console.log("FastAPI error:", err); 
+                throw new Error("Upload Failed");
+            }
+            console.log("profile has been updated")
             router.replace("/home")
         } catch (error){
             Alert.alert("Error", (error as Error).message);
@@ -89,8 +103,27 @@ export default function Setup(){
             setLoading(false);
             //router.replace("/home")
         }
-
     }
+    useEffect(()=>{
+        const fetchProfile = async ()=>{
+            const {data:{user}} = await supabase.auth.getUser();
+            const {data, error} = await supabase
+            .from("profiles")
+            .select("name, username, avatar_url")
+            .eq("id",user?.id)
+            .single();
+            if (!error) setProfile(data)
+        };
+        fetchProfile();
+    }, [])
+
+    useEffect(()=>{
+        if(profile){
+            setName(profile.name || "")
+            setUserName(profile.username || "")
+            setAvatarUri(profile.avatar_url || null);
+        }
+    }, [profile]);
 
     return(
     <SafeAreaView className="bg-indigo-300 flex-1 items-center justify-center">
@@ -104,7 +137,7 @@ export default function Setup(){
                     </View>
                 )}
             </TouchableOpacity>
-            <Text className="p-1 text-center">Enter your username</Text>
+            <Text className="p-1 text-center">Enter your new username</Text>
 
             <TextInput
                 value = {username} onChangeText={setUserName}
@@ -112,7 +145,7 @@ export default function Setup(){
                 placeholder="username" placeholderTextColor="#94a3b8"
                 className="bg-slate-800 text-white rounded-xl px-4 py-3 mb-3"    
             />
-            <Text className="p-1 text-center">Enter your name</Text>
+            <Text className="p-1 text-center">Enter your new name</Text>
             <TextInput
                 value = {name} onChangeText={setName}
                 autoCapitalize="none"
