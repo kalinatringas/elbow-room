@@ -48,6 +48,9 @@ export default function Profile() {
       router.replace('/landing');
     }
   }
+  const editProfile = async () => {
+    router.replace('/editprofile');
+  }
   useEffect(()=>{
     const fetchProfile = async ()=>{
       const {data:{user}} = await supabase.auth.getUser();
@@ -104,6 +107,10 @@ export default function Profile() {
                   <Text className='text-white font-semibold'>Sign Out</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                onPress={() => {
+                  editProfile()
+                  setMenuActive(false)
+                }}
                 className='bg-indigo-400 rounded-xl py-3 m-1 items-center'>
                 <Text className='text-white font-semibold'>Edit Profile</Text>
               </TouchableOpacity>

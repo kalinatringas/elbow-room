@@ -89,7 +89,7 @@ def get_user(user_id: str):
     return response.data[0]
 
 # getting posts and implementing cursor pagination
-@app.get("/posts/")
+@app.get("/posts/", response_model=CursorPagination)
 def get_posts(
     cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
     limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
@@ -198,33 +198,33 @@ async def update_user(username: str = Form(None),
                       name: str = Form(None), 
                       file: UploadFile = File(None), 
                       user=Depends(get_current_user)):
-    updates = {}
-
-    # i used form fields here instead of a pydantic model since we have bote files + text fields (Upload avatar)
     
-    if username is not None: 
-        updates["username"] = username
-    if bio is not None:
-        updates["bio"] = bio
-    if name is not None:
-        updates["name"] = name
+    try:
+        updates = {}
 
-    if file is not None:
-        avatar_url = await process_and_upload_avatar(file, user_id = user.id)
-        updates["avatar_url"] = avatar_url
+        # i used form fields here instead of a pydantic model since we have bote files + text fields (Upload avatar)
+        
+        if username is not None: 
+            updates["username"] = username
+        if bio is not None:
+            updates["bio"] = bio
+        if name is not None:
+            updates["name"] = name
 
-    if not updates:
-        raise HTTPException(status_code=400, detail="No fields to update")
-    
-    result = supabase.table("profiles").update(updates).eq("id", user.id).execute()
+        if file is not None:
+            avatar_url = await process_and_upload_avatar(file, user_id = user.id)
+            updates["avatar_url"] = avatar_url
 
-    # supabase.table("profiles").update({"username":patch.username}).eq("id", user.id).execute()
-    # supabase.table("profiles").update({"bio":patch.bio}).eq("id", user.id).execute()
-    # supabase.table("profiles").update({"name":patch.name}).eq("id", user.id).execute()
-    # upload_avatar(file)
-    if not result.data:
-        raise HTTPException(status_code=500, detail="Update failed")
-    return result.data[0]
+        if not updates:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        result = supabase_admin.table("profiles").update(updates).eq("id", user.id).execute()
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Update failed")
+        return result.data[0]
+    except Exception as e:
+        print ("update_user error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post('/posts/{post_id}/like')
 def toggle_like(post_id: str, user=Depends(get_current_user)):
@@ -256,3 +256,6 @@ def toggle_like(post_id: str, user=Depends(get_current_user)):
     except Exception as e:
         print("toggle_like error: ", e)
         raise HTTPException(status_code=500, detail=str(e))
+    
+        
+     
