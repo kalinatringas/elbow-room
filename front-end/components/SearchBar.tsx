@@ -3,15 +3,16 @@ import { TextInput, TouchableOpacity, Keyboard, TouchableWithoutFeedback, View }
 
 type SearchBarProps = {
     searchInput : string;
-    onSubmit: (content: string)=>void;
+    onSubmit: (content: string, tabs: string)=>void;
+    
 }
 
-export default function SearchBar(){
+export default function SearchBar({searchInput, onSubmit}: SearchBarProps){
 
-    const [searchInput, setSearchInput] = useState("")
+    const [text, setText] = useState("")
 
     function changeText(newText:string){
-        setSearchInput(newText);
+        setText(newText);
         //clearError();
     }
 
@@ -25,7 +26,10 @@ export default function SearchBar(){
                 placeholder="Search here..."
                 placeholderTextColor="#a1a1aa"
             />
-            <TouchableOpacity className="ml-2 bg-indigo-300 rounded-2xl text-center p-2">Submit</TouchableOpacity>
+            <TouchableOpacity className="ml-2 bg-indigo-300 rounded-2xl text-center p-2"
+                onPress={onSubmit}
+            >Submit</TouchableOpacity>
+
         </View>
 
     </TouchableWithoutFeedback>)
