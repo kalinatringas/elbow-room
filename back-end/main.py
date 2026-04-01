@@ -207,3 +207,38 @@ def get_user_post(
     next_cursor = posts[-1]["created_at"] if has_more else None
 
     return {"items": posts, "next_cursor": next_cursor}
+
+@app.get("/tags/{tag_id}/posts", response_model=CursorPagination)
+def get_tag_post(
+    tag_id: str,
+    cursor: Optional[str] = Query(None, description="Fetch posts created with this tag"),
+    limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
+    user=Depends(get_current_user),
+):
+    tag_response = supabase.table("tags").select("*").eq("id", tag_id).execute()
+    if not tag_response.data:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    query = supabase.table("post_tags") \
+        .select("post_id, posts(*, post_likes(user_id))") \
+        .eq("tag_id", tag_id) \
+        .order("posts.created_at", desc=True)
+    
+    if cursor:
+        query = query.lt("posts.created_at", cursor)
+
+    response = query.limit(limit).execute()
+
+    if not response.data:
+        return {"items": [], "next_cursor": None}
+    
+    posts = [item["posts"] for item in response.data if item.get("posts")]
+    
+    for post in posts:
+        likes = post.get("post_likes", [])
+        post["like_count"] = len(likes)
+        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
+
+    next_cursor = posts[-1]["created_at"] if posts else None
+
+    return {"items": posts, "next_cursor": next_cursor}
