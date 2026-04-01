@@ -1,5 +1,5 @@
 # All libs that are needed
-from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File, Body, Query
+from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File, Body, Query, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -54,11 +54,21 @@ class PostResponse(BaseModel):
     author_id: UUID
     content: str
     created_at: datetime
+    like_count: int = 0
+    liked_by_me: bool = False
+    profiles: Optional[dict] = None
+    
 
 #pagination model
 class CursorPagination(BaseModel):
     items: List[PostResponse]
     next_cursor: Optional[str]
+
+
+class UpdateUser(BaseModel):
+    username: str
+    bio: str
+    name: str
 
 @app.get("/")
 def root():
@@ -83,63 +93,67 @@ def get_user(user_id: str):
     return response.data[0]
 
 # getting posts and implementing cursor pagination
-@app.get("/posts/", response_model=CursorPagination)
+@app.get("/posts/")
 def get_posts(
-    cursor: Optional[str] = Query(None, description="Fetch posts created before this timestamp"),
-    limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
+    cursor: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
     user=Depends(get_current_user)
 ):
-    query = supabase.table("posts") \
-        .select("*, post_like(user_id)") \
-        .order("created_at", desc=True) \
-        .is_("deleted_at", None)
+    try:
+        # 🔹 Base feed query (FAST now)
+        query = supabase.table("posts")\
+            .select("""
+                id,
+                author_id,
+                content,
+                created_at,
+                like_count,
+                profiles!posts_author_id_fkey(username, avatar_url)
+            """)\
+            .is_("deleted_at", None)\
+            .order("created_at", desc=True)
 
-    if cursor:
-        query = query.lt("created_at", cursor)
+        if cursor:
+            query = query.lt("created_at", cursor)
 
-    response = query.limit(limit + 1).execute()  # fetch one extra to check if there are more
+        posts_resp = query.limit(limit + 1).execute()
 
-    if not response.data:
-        return {"items": [], "next_cursor": None}
+        if not posts_resp.data:
+            return {"items": [], "next_cursor": None}
 
-    posts = response.data[:limit]  # take only up to limit
-    has_more = len(response.data) > limit
-    
-    for post in posts:
-        likes = post.get("post_likes", [])
-        post["like_count"] = len(likes)
-        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
+        posts = posts_resp.data[:limit]
+        has_more = len(posts_resp.data) > limit
 
-    next_cursor = posts[-1]["created_at"] if has_more and posts else None
+        post_ids = [p["id"] for p in posts]
 
-    return {"items": posts, "next_cursor": next_cursor}
+        likes_resp = supabase.table("post_likes")\
+            .select("post_id")\
+            .eq("user_id", str(user.id))\
+            .in_("post_id", post_ids)\
+            .execute()
 
-# get post from user (for profile page)
-@app.get("/posts/me/")
-def get_posts(user=Depends(get_current_user)):
-    response = supabase_admin.table("posts").select("*, profiles!posts_author_id_fkey(username, avatar_url)").eq("author_id", str(user.id)).order("created_at", desc=True).execute()
-    if not response.data:
-        raise HTTPException(status_code=404, detail="User not found")
-    posts = response.data
-    for post in posts:
-        likes = post.get("post_likes", [])
-        post["like_count"] = len(likes)
-        post["liked_by_me"] = any(l["user_id"] == str(user.id) for l in likes)
-    return posts
+        liked_post_ids = {like["post_id"] for like in likes_resp.data}
 
-@app.post("/upload-avatar")
-async def upload_avatar(
-    file: UploadFile = File(...),
-    user = Depends(get_current_user),
-):
-    print("filename:", file.filename)
-    print("content_type:", file.content_type)
+        for post in posts:
+            post["liked_by_me"] = post["id"] in liked_post_ids
+
+        next_cursor = posts[-1]["created_at"] if has_more else None
+
+        return {"items": posts, "next_cursor": next_cursor}
+
+    except Exception as e:
+        print("get_posts error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def process_and_upload_avatar(
+    file: UploadFile,
+    user_id: str,   
+)->str:
 
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail="Invalid file type: only JPEG, PNG, and WEBP allowed")
     
     contents = await file.read()
-    print("size:", len(contents))
 
     # checking if file bigger than 2mb
     if (len(contents) > MAX_SIZE_MB * 1024 * 1024):
@@ -157,7 +171,7 @@ async def upload_avatar(
         raise HTTPException(status_code=500, detail=f"image processing failed: {str(e)}")
 
     try:
-        file_path = f'{user.id}/avatar.jpeg'
+        file_path = f'{user_id}/avatar.jpeg'
         supabase_admin.storage.from_("avatars").upload(
         path=file_path,
         file=buffer.read(),
@@ -167,47 +181,82 @@ async def upload_avatar(
         print("Image upload error", e)
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
     public_url = supabase.storage.from_('avatars').get_public_url(file_path)
-    supabase.table("profiles").update({"avatar_url":public_url}).eq("id", user.id).execute()
+    supabase.table("profiles").update({"avatar_url":public_url}).eq("id", user_id).execute()
 
-    return {"avatar_url": public_url}
+    return public_url
+@app.post("/upload-avatar")
+async def upload_avatar_route(file:UploadFile = File(...),
+                              user = Depends(get_current_user)):
+    url = await process_and_upload_avatar(file, user.id)
+    supabase.table("profiles").update({"avatar_url": url}).eq("id", user.id).execute()
+    return {"avatar_url": url}
 
-@app.get("/users/{user_id}/posts", response_model=CursorPagination)
-def get_user_post(
-    user_id: str,
-    cursor: Optional[str] = Query(None, description="Fetch posts after this post ID"),
-    limit: int = Query(20, ge=1, le=100, description="Number of posts to fetch"),
-    user=Depends(get_current_user),
-):
-    searched_user = get_user(user_id)
 
-    query = supabase.table("posts") \
-        .select("*, post_likes(user_id)") \
-        .eq('author_id', user_id) \
-        .order("created_at", desc=True) \
-        .is_("deleted_at", None)
+@app.patch("/users/me")
+async def update_user(username: str = Form(None),
+                      bio: str = Form(None),
+                      name: str = Form(None), 
+                      file: UploadFile = File(None), 
+                      user=Depends(get_current_user)):
+    
+    try:
+        updates = {}
 
-    if cursor:
-        query = query.lt("created_at", cursor)
+        # i used form fields here instead of a pydantic model since we have bote files + text fields (Upload avatar)
+        
+        if username is not None: 
+            updates["username"] = username
+        if bio is not None:
+            updates["bio"] = bio
+        if name is not None:
+            updates["name"] = name
 
-    response = query.limit(limit).execute()
+        if file is not None:
+            avatar_url = await process_and_upload_avatar(file, user_id = user.id)
+            updates["avatar_url"] = avatar_url
 
-    if not response.data:
-        return {"items": [], "next_cursor": None}
+        if not updates:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        result = supabase_admin.table("profiles").update(updates).eq("id", user.id).execute()
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Update failed")
+        return result.data[0]
+    except Exception as e:
+        print ("update_user error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
-    posts = response.data
-    has_more = len(posts) > limit
-
-    for post in posts:
-        likes = post.get("post_likes", [])
-        post["like_count"] = len(likes)
-        post["liked_by_me"] = any(
-            l["user_id"] == str(user.id) for l in likes
-        )
-
-    next_cursor = posts[-1]["created_at"] if has_more else None
-
-    return {"items": posts, "next_cursor": next_cursor}
-
+@app.post('/posts/{post_id}/like')
+def toggle_like(post_id: str, user=Depends(get_current_user)):
+    user_id = str(user.id)
+    try: 
+        existing = supabase_admin.table("post_likes")\
+        .select("*")\
+        .eq("post_id", post_id)\
+        .eq("user_id", user_id)\
+        .execute()
+        if existing.data:
+            #unlike
+            supabase_admin.table("post_likes")\
+            .delete()\
+            .eq("post_id", post_id)\
+            .eq("user_id", user_id)\
+            .execute()
+            liked = False
+        else:
+            supabase_admin.table("post_likes")\
+            .insert({"post_id":post_id, "user_id":user_id})\
+            .execute()
+            liked = True
+        count_resp = supabase_admin.table("post_likes")\
+        .select("*",count="exact")\
+        .eq("post_id", post_id)\
+        .execute()
+        return {"liked":liked, "like_count": count_resp.count}
+    except Exception as e:
+        print("toggle_like error: ", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.get("/tags/{tag_id}/posts", response_model=CursorPagination)
 def get_tag_post(
     tag_id: str,

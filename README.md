@@ -11,7 +11,7 @@ Frontend is built with **Expo + TypeScript**, backend will use **FastAPI**, and 
 - TypeScript
 - npm
 
-### Backend (Planned)
+### Backend
 - Python
 - FastAPI
 - PostgreSQL
@@ -30,7 +30,6 @@ Make sure you have installed:
 - Node.js (recommended: latest LTS version)
 - npm
 - Python (recommended: 3.10+)
-- 
 ---
 
 ## Frontend Setup
@@ -116,8 +115,8 @@ Expected packages will likely include:
 Inside `be/`, create a `.env` file:
 
 ```env
-DATABASE_URL=your_supabase_database_url
 SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
 SUPABASE_SERVICE_KEY=your_service_role_key
 ```
 
@@ -142,34 +141,6 @@ Once backend is running:
 - **Frontend** → `8081`
 - **Backend** → `8000`
 
-You will need to enable CORS in FastAPI:
-
-```python
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
-
-> Without this, requests will fail.
-
----
-
-## Supabase Setup
-
-1. Create a project on [Supabase](https://supabase.com) (cloud).
-2. Copy the following:
-   - Project URL
-   - Anon public key
-   - Database connection string
-3. Add them to their respective `.env` files.
-
----
 
 ## Development Workflow
 
@@ -186,23 +157,6 @@ uvicorn main:app --reload --port 8000
 ```
 
 > Make sure both are running at the same time.
-
----
-
-## Common Issues
-
-### ❌ CORS Errors
-Make sure FastAPI CORS middleware includes `http://localhost:8081`.
-
-### ❌ Environment Variables Not Loading
-- Ensure `.env` is in the correct folder.
-- Restart the dev server after changes.
-
-### ❌ Supabase Connection Issues
-- Double-check the database URL.
-- Make sure the project is not paused.
-
----
 
 ## For New Developers
 
