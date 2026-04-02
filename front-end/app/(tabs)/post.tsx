@@ -1,5 +1,5 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+
+import { Platform, Image, ImageBackground, StyleSheet } from 'react-native';
 import { View, Text } from 'react-native';
 import PostForm from '@/components/PostForm';
 import { supabase } from '@/lib/supabaseClient';
@@ -35,9 +35,17 @@ export default function CreatePost() {
   }
   
   return (
-    <View className="flex-1 items-center justify-center bg-white">      
+    <ImageBackground
+    source={require('../../assets/Paper(2).jpg')} 
+      style={{ flex: 1 }}
+      resizeMode="repeat">
+   
+    <View className="flex-1 items-center justify-center ">    
+      <Image source={require("../../assets/top.png")}/>
+      
       <PostForm onSubmit={handlePost} loading={loading}/>
-      </View>
+      </View> 
+      </ImageBackground>
   );
 }
 

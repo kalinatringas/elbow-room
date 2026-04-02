@@ -142,6 +142,7 @@ export default function HomePage(){
         resizeMode="repeat"
         width={1000}
         >
+          <Image source={require("../../assets/top.png")}/>
        <View className='flex-1'>
       
               <View className="h-16"></View>

@@ -120,6 +120,7 @@ useEffect(() => {
       resizeMode="repeat"
       
       >
+
       <View className="flex-1 ">
           <View className='flex-row bg-indigo-200 rounded-b-xl p-3 w-full justify-between items-center'>
             <View>
