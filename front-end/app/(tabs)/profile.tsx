@@ -40,11 +40,25 @@ export default function Profile() {
       Alert.alert("Error", (error as Error).message);
     }
   }
+
+  // const fetchPosts = async () => {
+  //   setPostsLoading(true);
+  //   try {
+  //     const headers = await getAuthHeader();
+  //     const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/${id}/post`, { headers });
+  //     const data = await res.json();
+  //     setPosts(data.items ?? []);
+  //   } catch (e) {
+  //     Alert.alert("Error", "Could not load posts");
+  //   } finally {
+  //     setPostsLoading(false);
+  //   }
+  // };
   const getPosts = async ()=>{
       setPostsLoading(true);
       try{
         const {data : {session}} = await supabase.auth.getSession();
-        const response = await   fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/me`,{
+        const response = await   fetch(`${process.env.EXPO_PUBLIC_API_URL}/posts/me/`,{
           method: "GET",
           headers: {
             Authorization: `Bearer ${session?.access_token}`
@@ -82,7 +96,7 @@ export default function Profile() {
       const {data:{user}} = await supabase.auth.getUser();
       const {data, error} = await supabase
       .from("profiles")
-      .select("name, avatar_url")
+      .select("name, avatar_url, username")
       .eq("id",user?.id)
       .single();
       if (!error) setProfile(data)
@@ -92,16 +106,19 @@ export default function Profile() {
 
   }, [])
 
+  
+
   return (
    <View className="flex-1 bg-white">
       <View className='flex-row bg-indigo-200 rounded-b-xl p-3 w-full justify-between items-center'>
         <View>
           <Ionicons name='mail-outline' size={32} color="white"/>
         </View>
-        <View className='flex-col'>
+        <View className='flex-col items-center'>
           <View className='h-12'></View>
           <Image source={{uri: profile?.avatar_url}} className='w-24 h-24 rounded-full'/>
           <Text className="text-xl font-bold text-center text-slate-800">{profile?.name}</Text>
+           <Text className="text-slate-600">@{profile?.username}</Text>
         </View>
         <TouchableOpacity onPress={()=>setMenuActive(true)}>
           <Ionicons name="menu-outline" size={32} color="white"/>
@@ -116,10 +133,10 @@ export default function Profile() {
         className='w-full'
         keyExtractor={(item)=>item.id}
          renderItem={({item})=>(
-          <Post author={item.profiles?.username ?? item.author_id} avatar_url={profile.avatar_url} text={item.content} liked_by_me={item.liked_by_me} onLike={()=>onLike(item.id)} like_count={item.like_count} />
+          <Post author={item.profiles?.username ?? item.author_id} avatar_url={profile.avatar_url} text={item.content} liked_by_me={item.liked_by_me} author_id={item.author_id} onLike={()=>onLike(item.id)} like_count={item.like_count} />
         )}
       />)}
-      <View className='h-12'></View>
+      <View className='h-28'></View>
       </View>
       {/* The menu pop  up */}
       {menuActive && 

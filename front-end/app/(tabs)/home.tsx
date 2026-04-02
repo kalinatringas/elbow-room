@@ -1,7 +1,7 @@
 import { View, TouchableOpacity, Text, Alert, Image, FlatList } from "react-native"
 import { router } from 'expo-router';
 import { supabase } from "@/lib/supabaseClient"
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, act } from "react";
 import Post from "@/components/Post";
 import SearchBar from "@/components/SearchBar";
 type PostItem = {
@@ -20,7 +20,7 @@ export default function HomePage(){
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
+  //const [searchLoading, setSearchLoading] = useState(false);
 
   const onLike = async (postID:string)=>{
     // fetch current like count, increase 
@@ -31,7 +31,7 @@ export default function HomePage(){
         headers:{
           Authorization: `Bearer ${session?.access_token}`
         },
-      });
+      }); 
       if (!response.ok){
         throw new Error("Failed to toggle like");
       }
@@ -84,14 +84,40 @@ export default function HomePage(){
     if(text.length < 2){setResults([]); return;}
     const endpoint = tab === "Users" ? "users" : tab === "Posts" ? "posts" : "tags";
     debounceRef.current = setTimeout(async()=>{
-      const {data : {session}} = await supabase.auth.getSession();
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/search/${endpoint}?q=${text}`, { 
-        headers: { 
-          Authorization: `Bearer ${session?.access_token}` 
-        } 
-      });
-      setResults(await res.json());
+      try {
+        const {data : {session}} = await supabase.auth.getSession();
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/search/${endpoint}?q=${text}`, { 
+          headers: { 
+            Authorization: `Bearer ${session?.access_token}` 
+          } 
+        });
+        const data = await res.json();
+        setResults(Array.isArray(data) ? data : data.items || []);
+        
+      } catch(error) {
+        console.error("Search error:", error);
+        setResults([]);
+      }
     },300)
+  }
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    if(query.length > 0) {
+      handleSearch(query, newTab);
+    }
+  }
+
+  const handleResultSelect = (result: any, tab: string) => {
+    try {
+      if(tab === "Users") {
+        router.push(`/(tabs)/${result.id}`);
+      } else if(tab === "Posts") {
+        router.push(`/(tabs)/${result.id}`);
+      }
+    } catch(error) {
+      console.error("Navigation error:", error);
+    }
   }
 
   useEffect(()=>{
@@ -111,8 +137,15 @@ export default function HomePage(){
     return(
        <View className='flex-1'>
               <View className="h-16"></View>
-             <View className='flex-row justify-center items-center px-2 py-2'>
-                <SearchBar onSubmit={handleSearch} />
+             <View className='flex-row justify-center z-50 items-center px-2 py-2'>
+                <SearchBar 
+                  searchInput={query} 
+                  activeTab={activeTab} 
+                  onSubmit={handleSearch}
+                  onTabChange={handleTabChange}
+                  results={results}
+                  onResultSelect={handleResultSelect}
+                />
              </View>
              
              <View className=" flex-1 w-full ">
@@ -125,7 +158,7 @@ export default function HomePage(){
                   extraData={posts}
                   keyExtractor={(item)=>item.id}
                   renderItem={({item})=>(
-                    <Post author={item.profiles?.username ?? item.author_id} text={item.content} like_count={item.like_count} liked_by_me={item.liked_by_me} onLike={()=>onLike(item.id)} avatar_url={item.profiles?.avatar_url} />
+                    <Post author={item.profiles?.username ?? item.author_id} author_id={item.author_id} text={item.content} like_count={item.like_count} liked_by_me={item.liked_by_me} onLike={()=>onLike(item.id)} avatar_url={item.profiles?.avatar_url} />
                   )}
                   />
               )} 
