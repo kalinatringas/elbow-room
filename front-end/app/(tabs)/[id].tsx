@@ -1,7 +1,9 @@
 import { Image } from 'expo-image';
-import { View, Text, FlatList, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Alert, TouchableOpacity, ImageBackground, ActivityIndicator } from 'react-native';
 import { supabase } from '@/lib/supabaseClient';
 import { useState, useEffect } from 'react';
+import { Image as RNImage } from 'react-native';
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from "@expo/vector-icons";
 import Post from '@/components/Post';
@@ -122,14 +124,26 @@ export default function UserProfile() {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <View className="flex-row items-center px-4 pt-6 pb-3 bg-indigo-200">
-        <TouchableOpacity onPress={() => router.back()}>
+     <ImageBackground 
+          source={require('../../assets/Paper(2).jpg')} 
+          style={{ flex: 1 }}
+          resizeMode="repeat"
+          
+          >
+    <View className="flex-1 ">
+      <View className="flex-row items-center px-4 pt-3 pb-3 bg-indigo-200">
+        <TouchableOpacity onPress={() => router.back()} className='pt-10'>
           <Ionicons name="arrow-back" size={28} color="white" />
         </TouchableOpacity>
       </View>
        <View className="items-center bg-indigo-200 pb-4 rounded-b-xl">
-            <Image source={{ uri: profile?.avatar_url }} className="w-24 h-24 rounded-full" />
+         {profile?.avatar_url && (
+                          <RNImage   
+                            source={{ uri: profile.avatar_url }}
+                            className='w-24 h-24 rounded-full'
+                            resizeMode="cover"
+                          />
+                        )}            
             <Text className="text-xl font-bold text-slate-800 mt-2">{profile?.name}</Text>
             <Text className="text-slate-600">@{profile?.username}</Text>
             {profile?.bio && <Text className="text-slate-500 mt-1 text-center px-6">{profile.bio}</Text>}
@@ -163,5 +177,6 @@ export default function UserProfile() {
             <View className='h-28'></View>
             </View>
     </View>
+    </ImageBackground>
   );
 }

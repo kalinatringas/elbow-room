@@ -2,6 +2,7 @@ import { View, TouchableOpacity, Text, Alert, Image, FlatList } from "react-nati
 import { router } from 'expo-router';
 import { supabase } from "@/lib/supabaseClient"
 import { useState, useEffect, useRef, act } from "react";
+import { ImageBackground } from "react-native";
 import Post from "@/components/Post";
 import SearchBar from "@/components/SearchBar";
 type PostItem = {
@@ -70,7 +71,7 @@ export default function HomePage(){
         throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
       }
       const data = await response.json();
-      console.log("First post:", JSON.stringify(data.items[0], null, 2));
+      //console.log("First post:", JSON.stringify(data.items[0], null, 2));
       setPosts(data.items);
     } catch (error){
       Alert.alert("Error", (error as Error).message);
@@ -135,7 +136,14 @@ export default function HomePage(){
   }, [])
 
     return(
+        <ImageBackground 
+        source={require('../../assets/Paper(2).jpg')} 
+        style={{ flex: 1 }}
+        resizeMode="repeat"
+        width={1000}
+        >
        <View className='flex-1'>
+      
               <View className="h-16"></View>
              <View className='flex-row justify-center z-50 items-center px-2 py-2'>
                 <SearchBar 
@@ -165,5 +173,6 @@ export default function HomePage(){
               <View className="h-28"></View>  
              </View>   
              </View>  
+            </ImageBackground>
     )
 }

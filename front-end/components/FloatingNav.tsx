@@ -1,13 +1,14 @@
-import { View, TouchableOpacity, Animated } from "react-native";
+import { View, TouchableOpacity, Animated, Image } from "react-native";
 import { useEffect, useRef } from "react";
 import { router } from "expo-router";
 import { Href } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet } from "react-native";
+
 
 const tabs = [
-  { name: "home", icon: "home", label: "Home", route: "/home" as Href },
-  { name: "post", icon: "add", label: "Explore", route: "/post" as Href },
-  { name: "profile", icon: "person", label: "Profile", route: "/profile" as Href },
+  { name: "home", label: "Home", route: "/home" as Href, icon: require('../assets/Home.png') },
+  { name: "post", label: "Explore", route: "/post" as Href, icon: require('../assets/Post.png') },
+  { name: "profile", label: "Profile", route: "/profile" as Href, icon: require('../assets/Profile.png') },
 ];
 
 function NavButton({ tab, active, onPress }: { tab: typeof tabs[0], active: boolean, onPress: () => void }) {
@@ -25,12 +26,8 @@ function NavButton({ tab, active, onPress }: { tab: typeof tabs[0], active: bool
   return (
     <TouchableOpacity onPress={onPress} className="items-center gap-1">
       <Animated.View style={{ transform: [{ translateY }] }} className="items-center gap-1">
-        <View className={`p-3 rounded-full ${active ? "bg-indigo-100" : "bg-white"}`}>
-        <Ionicons
-          name={tab.icon as any}
-          size={32}
-          color={active ? "#6366f1" : "#9ca3af"}
-        />
+        <View className={`p-3 rounded-full`}>
+          <Image source={tab.icon} style={{ width: 42, height: 42 }} />
         </View>
       </Animated.View>
     </TouchableOpacity>
@@ -41,7 +38,14 @@ function NavButton({ tab, active, onPress }: { tab: typeof tabs[0], active: bool
 export default function FloatingNav({active}: { active:string}){
 
     return (
-    <View className="absolute bottom-8 left-6 right-6 bg-indigo-100 rounded-2xl p-2 justify-around flex-row">
+    <View className="absolute bottom-0 right-0 left-0 rounded-t-2xl justify-around flex-row" style={{ height: 80 }} >
+      <View style={[StyleSheet.absoluteFillObject, styles.background, {height:110}]}>
+        <Image
+          source={require('../assets/Navbar.png')}
+          style={{ position: 'absolute', top: 0, bottom: 0}}
+          resizeMode="stretch"
+        />
+      </View>
        {tabs.map((tab)=>(
         <NavButton
         key={tab.name}
@@ -54,3 +58,11 @@ export default function FloatingNav({active}: { active:string}){
     )
 
 }
+
+const styles = StyleSheet.create({
+  background: {
+    overflow: "hidden", 
+    borderRadius:16,
+  
+  },
+});

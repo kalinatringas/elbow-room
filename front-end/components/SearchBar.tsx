@@ -1,9 +1,10 @@
-import { Text } from "@react-navigation/elements";
 import { useState } from "react"
-import { TextInput, TouchableOpacity, Keyboard, TouchableWithoutFeedback, View, FlatList, ScrollView } from "react-native"
+import { Text, TextInput, Dimensions, TouchableOpacity, Keyboard, TouchableWithoutFeedback, View, FlatList, ScrollView } from "react-native"
 
 
 const TABS = ["Users", "Posts", "Tags"]
+
+const { width } = Dimensions.get('window');
 
 type SearchResult = {
     id: string;
@@ -62,7 +63,7 @@ export default function SearchBar({searchInput, activeTab, onSubmit, onTabChange
 
     return( 
     <TouchableWithoutFeedback onPress={() => setShowCategories(false)}>
-        <View className="flex-col relative">
+        <View style={{ width: width - 16 }}>
             <View className="p-2 flex-row w-full">
                 <TextInput
                     className="p-3 self-stretch flex-1 bg-white rounded-2xl border-black text-black" 
@@ -103,6 +104,7 @@ export default function SearchBar({searchInput, activeTab, onSubmit, onTabChange
                             <FlatList
                                 data={results}
                                 keyExtractor={(item) => item.id.toString()}
+                                keyboardShouldPersistTaps="handled"
                                 scrollEnabled={false}
                                 renderItem={({item}) => (
                                     <TouchableOpacity
