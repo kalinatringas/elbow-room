@@ -18,7 +18,7 @@ export default function TabLayout() {
         <Tabs.Screen name="profile" />
       </Tabs>
 
-      <FloatingNav active={activeTab} /> {/* ✅ renders over all screens */}
+      <FloatingNav active={activeTab} /> 
     </View>
   );
 }

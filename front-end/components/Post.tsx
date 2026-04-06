@@ -20,18 +20,19 @@ export default function Post({author, text, author_id, like_count, liked_by_me, 
     }
     return(
         <View className="bg-indigo-300 rounded-xl m-2 p-4">
-            <View className="flex-row items-center mb-2">
+            <View className="flex-row items-center w-full mb-2">
                 <TouchableOpacity
+                className="flex-row items-center justify-around"
                 onPress={handleShowUser}>
                     {avatar_url ? (
-                        <Image source={{ uri: avatar_url }} className="w-10 h-10 rounded-full mr-3" />
+                        <Image source={{ uri: avatar_url }} className="w-12 h-12 rounded-full mr-3" />
                     ) : (
-                        <View className="w-10 h-10 rounded-full bg-gray-400 mr-3" />
+                        <View className="w-12 h-12 rounded-full bg-gray-400 mr-3" />
                     )}
-                    <Text className="text-lg font-medium">{author}</Text>
+                    <Text className="text-lg text-right font-medium">@{author}</Text>
                 </TouchableOpacity>        
             </View>
-            <Text className="text-center mb-2">{text}</Text>
+            <Text className="text-left mb-2">{text}</Text>
             <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center ">
                     <TouchableOpacity

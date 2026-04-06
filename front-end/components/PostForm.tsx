@@ -57,8 +57,8 @@ export default function PostForm({ onSubmit, loading = false }: Props){
 
    return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <View className='w-full p-3 flex-1 justify-center'>
-        <View className='bg-indigo-100 rounded-xl w-full'>
+    <View className='w-full p-3 pt-4'>
+        <View className='bg-indigo-100 rounded-xl w-full h-52'>
             <TextInput
                 className='p-3 m-2 self-stretch'
                 value={textbox}

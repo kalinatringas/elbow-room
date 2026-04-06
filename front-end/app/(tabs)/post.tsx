@@ -1,9 +1,10 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+
+import { Platform, Image, ImageBackground, StyleSheet } from 'react-native';
 import { View, Text } from 'react-native';
 import PostForm from '@/components/PostForm';
 import { supabase } from '@/lib/supabaseClient';
 import { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CreatePost() {
   const [loading, setLoading] = useState(false)
@@ -35,9 +36,18 @@ export default function CreatePost() {
   }
   
   return (
-    <View className="flex-1 items-center justify-center bg-white">      
-      <PostForm onSubmit={handlePost} loading={loading}/>
-      </View>
+    <ImageBackground
+    source={require('../../assets/Paper(2).jpg')} 
+      style={{ flex: 1 }}
+      resizeMode="repeat">
+   <SafeAreaView style={{flex:1}} edges={['bottom', 'left', 'right']}>
+      <View style={{justifyContent:'flex-start', alignItems: 'center', flex: 1}}>    
+        <Image source={require("../../assets/top.png")}/>
+        <PostForm onSubmit={handlePost} loading={loading}/>
+      </View> 
+   </SafeAreaView>
+    
+      </ImageBackground>
   );
 }
 
