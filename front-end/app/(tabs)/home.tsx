@@ -144,9 +144,7 @@ export default function HomePage(){
         >
           <Image source={require("../../assets/top.png")}/>
        <View className='flex-1'>
-      
-              <View className="h-16"></View>
-             <View className='flex-row justify-center z-50 items-center px-2 py-2'>
+          <View className='flex-row justify-center z-50 items-center px-2 py-2'>
                 <SearchBar 
                   searchInput={query} 
                   activeTab={activeTab} 
@@ -171,7 +169,7 @@ export default function HomePage(){
                   )}
                   />
               )} 
-              <View className="h-28"></View>  
+              <View className="h-24"></View>  
              </View>   
              </View>  
             </ImageBackground>

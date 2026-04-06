@@ -154,7 +154,7 @@ useEffect(() => {
               <Post author={item.profiles?.username ?? item.author_id} avatar_url={profile.avatar_url} text={item.content} liked_by_me={item.liked_by_me} author_id={item.author_id} onLike={()=>onLike(item.id)} like_count={item.like_count} />
             )}
           />)}
-          <View className='h-28'></View>
+          <View className='h-24'></View>
           </View>
           {/* The menu pop  up */}
           {menuActive && 

@@ -444,3 +444,79 @@ def search_tags(
     .limit(limit)\
     .execute()
     return response.data
+
+
+# friendship!
+
+@app.post("/friends/request/{addressee_id}", status_code=201)
+def send_friend_req(addressee_id: str, user= Depends(get_current_user)):
+    if str(user.id) == addressee_id:
+        raise HTTPException(status_code=400, detail="Cannot request yourself!")
+    target = supabase.table('profiles').select("id").eq("id", addressee_id).execute() # select the person u wanna be friends with
+    if not target.data:
+        raise HTTPException(status_code=404, detail="User not found") 
+    existing = supabase.table("friendships")\
+    .select("id, status")\
+    .or_(f"and(requester_id.eq.{user.id},addressee_id.eq.{addressee_id}), and(requester_id.eq.{addressee_id},addressee_id.eq.{user.id})")\
+    .execute()
+
+    if existing.data:
+        status = existing.data[0]['status']
+        detail = "Friend request already sent" if status == "pending" else "Already friends" 
+        raise HTTPException(status_code=409, detail=detail)
+    result = supabase_admin.table("friendships").insert({
+        "requester_id": str(user.id),
+        "addressee_id": addressee_id,
+        "status": "pending"
+    }).execute()
+
+    return result.data[0]
+@app.post("/friends/accept/{requester_id}", status_code=200)
+def accept_friend_req(requester_id: str, user = Depends(get_current_user)):
+    result = supabase_admin.table("friendships")\
+    .update({"status": "accepted"})\
+    .eq("requester_id", requester_id) \
+    .eq("addressee_id", user.id)\
+    .eq("status", "pending")\
+    .execute()
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pending request not found")
+    return result.data[0]
+
+@app.delete("/friends/{user_id}", status_code=200)
+def delete_friend(user_id: str, user = Depends(get_current_user)):
+    supabase_admin.table("friendships") \
+    .delete()\
+    .or_(f"and(requester_id.eq.{user.id},addressee_id.eq.{user_id}),and(requester_id.eq.{user_id},addressee_id.eq.{user.id})") \
+    .execute()
+
+    return {"detail": "Removed"}
+@app.get("/friends", status_code=200)
+def get_friends(user=Depends(get_current_user)):
+    result = supabase.table("friendships")\
+    .select("*, requester:profiles!friendships_requester_id_fkey(id, username,avatar_url), addressee:profiles!friendships_addressee_id_fkey(id, username, avatar_url)")\
+    .eq("status", "accepted")\
+    .execute()
+
+    friends = []
+    for f in result.data:
+        friend = f['addressee'] if f['requester_id'] == str(user.id) else f['requester']
+        friends.append(friend)
+    return friends
+
+@app.get("/friends/status/{other_id}", status_code=200)
+def get_friend_status(other_id:str, user = Depends(get_current_user)):
+    result = supabase_admin.table("friendships")\
+    .select("id, status, requester_id, addressee_id")\
+    .or_(f"and(requester_id.eq.{user.id},addressee_id.eq.{other_id}), and(requester_id.eq.{other_id}, addressee_id.eq.{user.id})")\
+    .execute()
+    if not result.data:
+        return {"status": "none"}
+    
+    f = result.data[0]
+    if f['status'] == 'accepted':
+        return {"status": "friends"}
+    if f["requester_id"] == str(user.id):
+        return {"status":"pending_sent"}
+    return {"status":"pending_received"}
