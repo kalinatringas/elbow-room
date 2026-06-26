@@ -1,5 +1,10 @@
 # Elbow Room - Full Stack Social Media App
 
+
+https://github.com/user-attachments/assets/389632d2-a34a-4c4b-b00c-5065c4600ecc
+
+
+
 Frontend is built with **Expo + TypeScript**, backend will use **FastAPI**, and data is managed with **PostgreSQL via Supabase**.
 
 ---
